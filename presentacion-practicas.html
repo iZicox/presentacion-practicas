@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rediseño web y portal de cliente — Prácticas FP · Lifud</title>
+
+<!-- Tipografía: Archivo (display) + Nunito (texto) — Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   1. PROPIEDADES CSS DEL TEMA (SWISS MODERN)
+   Cambia aquí colores, tipografías y medidas de toda la baraja
+   ============================================================ */
+:root {
+    --stage-bg: #0a0a0a;      /* letterbox alrededor de la diapositiva */
+    --slide-bg: #ffffff;      /* papel de la diapositiva */
+    --ink: #0a0a0a;           /* negro tipográfico */
+    --red: #ff3300;           /* acento rojo señalético */
+    --grid: #ebebeb;          /* líneas de la retícula */
+    --mute: #8a8a8a;          /* texto secundario */
+    --hair: #d8d8d8;          /* filetes finos */
+
+    --font-display: 'Archivo', sans-serif;
+    --font-body: 'Nunito', sans-serif;
+
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur: 0.7s;
+}
+
+/* ============================================================
+   2. ESTILOS BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   3. LIENZO FIJO 16:9 (viewport-base.css — obligatorio)
+   ============================================================ */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+    .deck-viewport { position: static; overflow: visible; background: #fff; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls, .deck-status, .edit-toggle, .edit-hotzone { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ============================================================
+   4. SISTEMA DE LA DIAPOSITIVA (chrome + retícula)
+   ============================================================ */
+.slide {
+    background-color: var(--slide-bg);
+    background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+    background-size: 240px 100%, 100% 240px;
+    padding: 62px 96px 52px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Cabecera: filete negro de 4px + identificación del trabajo */
+.chrome-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-top: 4px solid var(--ink);
+    padding-top: 15px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+}
+.chrome-top .mark-right { color: var(--mute); }
+.chrome-top .mark-right b { color: var(--red); font-weight: 800; }
+
+/* Pie: filete fino + contador de página */
+.chrome-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--ink);
+    padding-top: 15px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+}
+.chrome-bottom .page { color: var(--mute); }
+.chrome-bottom .page b { color: var(--ink); font-weight: 800; }
+
+/* Cuerpo: ocupa todo el espacio entre cabecera y pie */
+.slide-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: 34px 0;
+}
+
+/* ============================================================
+   5. TIPOGRAFÍA DE CONTENIDO
+   ============================================================ */
+.kicker {
+    display: inline-block;
+    align-self: flex-start;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: var(--red);
+    color: #fff;
+    padding: 11px 20px 9px;
+    margin-bottom: 40px;
+}
+.kicker.plain {
+    background: transparent;
+    color: var(--ink);
+    border-left: 6px solid var(--red);
+    padding: 4px 0 4px 16px;
+}
+
+h1 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 138px;
+    line-height: 0.9;
+    letter-spacing: -0.035em;
+    text-transform: uppercase;
+    margin: 0;
+}
+h2 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 116px;
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+    text-transform: uppercase;
+    margin: 0;
+}
+h2 .accent { color: var(--red); }
+
+.lede {
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.45;
+    max-width: 860px;
+    margin-top: 42px;
+}
+.lede b { font-weight: 700; border-bottom: 5px solid var(--red); padding-bottom: 2px; }
+
+/* ============================================================
+   6. ANIMACIONES DE ENTRADA (se disparan con .visible)
+   ============================================================ */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.visible .reveal { opacity: 1; transform: translateY(0); }
+
+/* Retardo escalonado */
+.d1 { transition-delay: 0.10s; }
+.d2 { transition-delay: 0.22s; }
+.d3 { transition-delay: 0.34s; }
+.d4 { transition-delay: 0.46s; }
+.d5 { transition-delay: 0.58s; }
+.d6 { transition-delay: 0.70s; }
+
+/* Títulos con máscara de línea (revelado de abajo hacia arriba) */
+.mask {
+    display: block;
+    overflow: hidden;
+    padding-top: 0.15em;
+}
+.mask + .mask { margin-top: -0.12em; }
+.mask > span {
+    display: block;
+    transform: translateY(118%);
+    transition: transform 0.9s var(--ease);
+}
+.visible .mask > span { transform: translateY(0); }
+.m1 > span { transition-delay: 0.25s; }
+.m2 > span { transition-delay: 0.38s; }
+.m3 > span { transition-delay: 0.51s; }
+
+/* Repinta del chrome */
+.chrome-top, .chrome-bottom {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+.visible .chrome-top, .visible .chrome-bottom { opacity: 1; }
+.visible .chrome-bottom { transition-delay: 0.65s; }
+
+/* ============================================================
+   7. GRAFISMO SUÍZO (cuadrado, círculo, barras, número perfilado)
+   ============================================================ */
+.geo { position: relative; align-self: stretch; }
+.geo .sq {
+    position: absolute; right: 0; top: 40px;
+    width: 300px; height: 300px;
+    background: var(--red);
+    transform: scale(0); transform-origin: top right;
+    transition: transform 0.7s var(--ease) 0.55s;
+}
+.visible .geo .sq { transform: scale(1); }
+.geo .ring {
+    position: absolute; right: 170px; top: 235px;
+    width: 290px; height: 290px;
+    border: 4px solid var(--ink); border-radius: 50%;
+    background: var(--slide-bg);
+    transform: scale(0);
+    transition: transform 0.7s var(--ease) 0.75s;
+}
+.visible .geo .ring { transform: scale(1); }
+.geo .bars {
+    position: absolute; left: 0; bottom: 34px;
+    display: flex; flex-direction: column; gap: 12px;
+    opacity: 0; transform: translateX(-24px);
+    transition: opacity 0.6s ease 0.85s, transform 0.6s var(--ease) 0.85s;
+}
+.visible .geo .bars { opacity: 1; transform: translateX(0); }
+.geo .bars i { display: block; height: 12px; background: var(--ink); }
+.geo .bars i:nth-child(1) { width: 220px; }
+.geo .bars i:nth-child(2) { width: 150px; background: var(--red); }
+.geo .bars i:nth-child(3) { width: 185px; }
+.geo .bars i:nth-child(4) { width: 105px; }
+.num-outline {
+    position: absolute; right: 0; bottom: 0;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 200px;
+    line-height: 0.8;
+    letter-spacing: -0.05em;
+    color: transparent;
+    -webkit-text-stroke: 3px var(--ink);
+    opacity: 0;
+    transition: opacity 0.7s ease 0.95s;
+}
+.visible .num-outline { opacity: 1; }
+
+/* ============================================================
+   8. PLANTILLAS DE DIAPOSITIVA
+   ============================================================ */
+
+/* --- 8a. Portada --- */
+.lay-cover .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 520px;
+    column-gap: 56px;
+    align-items: center;
+}
+.cover-mark { grid-column: 2; height: 100%; }
+
+/* --- 8b. Índice 2×2 --- */
+.index-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-top: 1.5px solid var(--ink);
+    border-left: 1.5px solid var(--ink);
+}
+.index-item {
+    border-right: 1.5px solid var(--ink);
+    border-bottom: 1.5px solid var(--ink);
+    padding: 44px 46px 48px;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: background-color 0.35s ease;
+}
+.index-item:hover { background: #f6f6f6; }
+.index-item .idx-num {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 66px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: transparent;
+    -webkit-text-stroke: 2.5px var(--ink);
+}
+.index-item:nth-child(1) .idx-num,
+.index-item:nth-child(4) .idx-num { color: var(--red); -webkit-text-stroke: 0; }
+.index-item h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 40px;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin: 0;
+}
+.index-item p { font-size: 23px; line-height: 1.4; color: var(--mute); margin: 0; font-weight: 600; }
+
+/* --- 8c. Dos columnas: texto + hueco de imagen --- */
+.lay-split .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 640px;
+    column-gap: 70px;
+    align-items: center;
+}
+.split-main { min-width: 0; }
+
+/* Listado corto con marcador rojo */
+.bullets { list-style: none; margin: 46px 0 0; padding: 0; display: flex; flex-direction: column; gap: 26px; }
+.bullets li {
+    position: relative;
+    padding-left: 46px;
+    font-size: 31px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+.bullets li::before {
+    content: "";
+    position: absolute; left: 0; top: 12px;
+    width: 22px; height: 22px; background: var(--red);
+}
+.bullets li span { font-weight: 600; color: var(--mute); display: block; font-size: 24px; margin-top: 6px; }
+
+/* --- 8d. Tres tarjetas --- */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; margin-top: 54px; }
+.card {
+    border: 1.5px solid var(--ink);
+    padding: 40px 36px 44px;
+    background: var(--slide-bg);
+    min-height: 330px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+.card:hover { transform: translateY(-8px); box-shadow: 10px 10px 0 0 var(--red); }
+.card .card-num {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 74px;
+    line-height: 1;
+    color: var(--red);
+    letter-spacing: -0.04em;
+}
+.card h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 37px;
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+.card p { font-size: 23px; line-height: 1.45; color: var(--mute); font-weight: 600; margin: 0; margin-top: auto; }
+
+/* --- 8e. Razones numeradas (WordPress / Elementor) --- */
+.reasons { list-style: none; margin: 52px 0 0; padding: 0; display: flex; flex-direction: column; gap: 34px; max-width: 1180px; }
+.reasons li { display: flex; align-items: baseline; gap: 30px; }
+.reasons .rn {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 40px;
+    color: var(--red);
+    letter-spacing: -0.03em;
+    flex: 0 0 auto;
+    min-width: 74px;
+}
+.reasons .rt { font-size: 36px; font-weight: 700; line-height: 1.3; }
+.reasons .rt em {
+    font-style: normal;
+    display: block;
+    font-size: 23px;
+    font-weight: 600;
+    color: var(--mute);
+    margin-top: 7px;
+}
+.big-tag {
+    position: absolute;
+    right: 96px; top: 150px;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 300px;
+    line-height: 0.8;
+    color: transparent;
+    -webkit-text-stroke: 4px var(--grid);
+    z-index: 0;
+}
+
+/* --- 8f. Diagrama de arquitectura --- */
+.diagram { display: flex; align-items: stretch; gap: 0; margin-top: 66px; }
+.node {
+    flex: 1 1 0;
+    border: 1.5px solid var(--ink);
+    background: var(--slide-bg);
+    padding: 42px 28px 38px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    justify-content: center;
+}
+.node b {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 31px;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+}
+.node span { font-size: 21px; font-weight: 600; color: var(--mute); line-height: 1.4; }
+.node.hot { background: var(--red); border-color: var(--red); }
+.node.hot b { color: #fff; }
+.node.hot span { color: rgba(255,255,255,.85); }
+.arrow {
+    flex: 0 0 74px;
+    position: relative;
+    align-self: center;
+    height: 2px;
+    background: var(--ink);
+    margin: 0 6px;
+}
+.arrow::after {
+    content: "";
+    position: absolute;
+    right: -2px; top: -7px;
+    border-left: 15px solid var(--ink);
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+}
+.diagram-note {
+    margin-top: 46px;
+    font-size: 25px;
+    font-weight: 700;
+    color: var(--mute);
+    border-left: 6px solid var(--red);
+    padding-left: 20px;
+    max-width: 1200px;
+}
+
+/* --- 8g. Pasos (área privada) --- */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 58px; }
+.step { border-top: 5px solid var(--ink); padding-top: 30px; }
+.step:nth-child(2) { border-top-color: var(--red); }
+.step .step-n {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 30px;
+    letter-spacing: 0.12em;
+    color: var(--red);
+    margin-bottom: 22px;
+}
+.step h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 42px;
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin: 0 0 18px;
+}
+.step p { font-size: 23px; line-height: 1.45; color: var(--mute); font-weight: 600; margin: 0; }
+
+/* --- 8h. Línea de tiempo (planificación) --- */
+.timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; margin-top: 66px; }
+.phase { position: relative; padding-top: 42px; }
+.phase::before {
+    content: "";
+    position: absolute; left: 0; right: 0; top: 0;
+    height: 4px; background: var(--ink);
+}
+.phase:nth-child(1)::before { background: var(--red); }
+.phase::after {
+    content: "";
+    position: absolute; left: 0; top: -9px;
+    width: 22px; height: 22px;
+    background: var(--slide-bg);
+    border: 4px solid var(--ink);
+    border-radius: 50%;
+}
+.phase:nth-child(1)::after { border-color: var(--red); background: var(--red); }
+.phase .ph-label {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 18px;
+}
+.phase h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 36px;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin: 0 0 16px;
+    line-height: 1.05;
+}
+.phase p { font-size: 22px; line-height: 1.45; color: var(--mute); font-weight: 600; margin: 0; }
+
+/* --- 8i. Cierre --- */
+.lay-close .slide-body { align-items: flex-start; }
+.close-row { display: flex; align-items: center; gap: 34px; }
+.close-square { width: 96px; height: 96px; background: var(--red); flex: 0 0 auto; }
+
+/* ============================================================
+   9. HUECOS PARA IMÁGENES (para añadir más tarde)
+   ============================================================ */
+.img-slot { margin: 0; width: 100%; }
+.slot-frame {
+    position: relative;
+    width: 100%;
+    height: 470px;
+    border: 1.5px solid var(--ink);
+    background:
+        repeating-linear-gradient(-45deg, transparent 0 18px, #f3f3f3 18px 19px),
+        var(--slide-bg);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+.slot-frame::before {
+    content: "";
+    position: absolute; left: 0; top: 0;
+    width: 54px; height: 54px;
+    border-left: 6px solid var(--red);
+    border-top: 6px solid var(--red);
+}
+.slot-frame .slot-tag {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+    background: var(--slide-bg);
+    border: 1.5px solid var(--ink);
+    padding: 14px 22px;
+    text-align: center;
+    max-width: 78%;
+}
+.slot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-slot figcaption {
+    margin-top: 16px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--mute);
+}
+.img-slot figcaption b { color: var(--red); font-weight: 800; }
+
+/* Franja de datos (empresa) */
+.stats { display: flex; gap: 0; margin-top: 48px; border-top: 1.5px solid var(--ink); }
+.stat { padding: 22px 34px 0 0; margin-right: 34px; border-right: 1px solid var(--hair); }
+.stat:last-child { border-right: none; }
+.stat .k {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 10px;
+}
+.stat .v { font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: -0.01em; }
+
+/* ============================================================
+   10. CONTROLES FUERA DEL LIENZO (progreso + edición)
+   ============================================================ */
+.deck-status {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 9px 18px;
+    background: #141414;
+    border: 1px solid #2e2e2e;
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border-radius: 2px;
+}
+.deck-status .track {
+    width: 150px; height: 3px; background: #333; position: relative; overflow: hidden;
+}
+.deck-status .track i {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--red);
+    transition: width 0.45s var(--ease);
+}
+.deck-status .cur { color: var(--red); }
+
+/* Botón de edición (aparece al pasar el ratón por la esquina superior izquierda) */
+.edit-hotzone {
+    position: fixed; top: 0; left: 0;
+    width: 80px; height: 80px;
+    z-index: 10000;
+    cursor: pointer;
+}
+.edit-toggle {
+    position: fixed;
+    top: 14px; left: 14px;
+    z-index: 10001;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--ink);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: var(--red); border-color: var(--red); color: #fff; }
+body.edit-mode .slide [contenteditable="true"] { outline: 1.5px dashed var(--red); outline-offset: 4px; }
+body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--red); background: rgba(255, 51, 0, 0.05); }
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     LIENZO DE LA PRESENTACIÓN
+     Cada <section class="slide"> es una diapositiva (1920×1080).
+     Para añadir una: copia una sección y actualiza chrome + pie.
+     ============================================================ -->
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+    <!-- ============ 01 · PORTADA ============ -->
+    <section class="slide lay-cover active" aria-label="Portada">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right">Lifud &nbsp;·&nbsp; Leds Universal</span>
+        </header>
+
+        <div class="slide-body">
+            <div class="split-main">
+                <span class="kicker reveal d1">Memoria de prácticas</span>
+                <h1>
+                    <span class="mask m1"><span>Rediseño</span></span>
+                    <span class="mask m2"><span>web y portal</span></span>
+                    <span class="mask m3"><span>de cliente<em style="font-style:normal;color:var(--red)">.</em></span></span>
+                </h1>
+                <p class="lede reveal d4">Nuevo sitio corporativo, área privada con <b>inventario conectado al ERP</b> y rediseño de <b>Leds Universal</b>.</p>
+            </div>
+
+            <div class="geo cover-mark" aria-hidden="true">
+                <div class="sq"></div>
+                <div class="ring"></div>
+                <div class="bars"><i></i><i></i><i></i><i></i></div>
+                <div class="num-outline">01</div>
+            </div>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Grupo Lifud <b style="color:var(--red)">■</b> España</span>
+            <span class="page">Septiembre 2026</span>
+        </footer>
+    </section>
+
+    <!-- ============ 02 · ÍNDICE ============ -->
+    <section class="slide" aria-label="Índice">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>02</b> — Índice</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Contenido</span>
+            <h2 class="reveal d2">Cuatro bloques</h2>
+
+            <div class="index-grid reveal d3">
+                <div class="index-item">
+                    <span class="idx-num">01</span>
+                    <h3>Contexto</h3>
+                    <p>La empresa, la situación actual y las peticiones del cliente.</p>
+                </div>
+                <div class="index-item">
+                    <span class="idx-num">02</span>
+                    <h3>Decisiones</h3>
+                    <p>Por qué WordPress y por qué Elementor Pro.</p>
+                </div>
+                <div class="index-item">
+                    <span class="idx-num">03</span>
+                    <h3>Solución</h3>
+                    <p>Arquitectura, área privada con ERP y Leds Universal.</p>
+                </div>
+                <div class="index-item">
+                    <span class="idx-num">04</span>
+                    <h3>Planificación</h3>
+                    <p>Fases, resultados esperados y aprendizajes.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>02</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 03 · LA EMPRESA ============ -->
+    <section class="slide lay-split" aria-label="La empresa">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>01</b> — Contexto</span>
+        </header>
+
+        <div class="slide-body">
+            <div class="split-main">
+                <span class="kicker reveal d1">La empresa</span>
+                <h2>
+                    <span class="mask m1"><span>Lifud distribuye</span></span>
+                    <span class="mask m2"><span>drivers LED</span></span>
+                </h2>
+                <p class="lede reveal d3">Distribuidor de productos <b>driver LED</b> en España. Del mismo grupo forma parte <b>Leds Universal</b>, la otra marca con presencia web.</p>
+
+                <div class="stats reveal d4">
+                    <div class="stat"><div class="k">Sector</div><div class="v">Iluminación LED</div></div>
+                    <div class="stat"><div class="k">Producto</div><div class="v">Drivers LED</div></div>
+                    <div class="stat"><div class="k">Mercado</div><div class="v">España</div></div>
+                </div>
+            </div>
+
+            <!-- HUECO DE IMAGEN: sustituye el div .slot-frame por
+                 <div class="slot-frame"><img src="assets/logo-lifud.png" alt="Lifud"></div> -->
+            <figure class="img-slot reveal d3">
+                <div class="slot-frame">
+                    <span class="slot-tag">Logo o foto de producto</span>
+                </div>
+                <figcaption><b>Fig. 01</b> &nbsp; Identidad de Lifud</figcaption>
+            </figure>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>03</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 04 · SITUACIÓN ACTUAL ============ -->
+    <section class="slide lay-split" aria-label="Situación actual">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>01</b> — Contexto</span>
+        </header>
+
+        <div class="slide-body">
+            <div class="split-main">
+                <span class="kicker reveal d1">Análisis de situación actual</span>
+                <h2>
+                    <span class="mask m1"><span>La web no</span></span>
+                    <span class="mask m2"><span>acompaña</span></span>
+                </h2>
+
+                <ul class="bullets">
+                    <li class="reveal d3">Sitio antiguo y difícil de actualizar
+                        <span>Los cambios dependen de terceros y tardan.</span>
+                    </li>
+                    <li class="reveal d4">El stock se consulta fuera de la web
+                        <span>El cliente llama o escribe para saber disponibilidad.</span>
+                    </li>
+                    <li class="reveal d5">Dos marcas del grupo, desigual presencia
+                        <span>Leds Universal no está al nivel de Lifud.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- HUECO DE IMAGEN: captura del sitio actual -->
+            <figure class="img-slot reveal d3">
+                <div class="slot-frame">
+                    <span class="slot-tag">Captura · web actual</span>
+                </div>
+                <figcaption><b>Fig. 02</b> &nbsp; Estado actual de lifud.com</figcaption>
+            </figure>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>04</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 05 · PETICIONES ============ -->
+    <section class="slide" aria-label="Peticiones del cliente">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>01</b> — Contexto</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Encargo del cliente</span>
+            <h2 class="reveal d2">Tres peticiones</h2>
+
+            <div class="cards">
+                <article class="card reveal d3">
+                    <span class="card-num">01</span>
+                    <h3>Rediseñar la web de Lifud</h3>
+                    <p>Nuevo sitio corporativo, claro y fácil de mantener por el equipo.</p>
+                </article>
+                <article class="card reveal d4">
+                    <span class="card-num">02</span>
+                    <h3>Login para clientes</h3>
+                    <p>Área privada donde el cliente ve el inventario tomado del ERP.</p>
+                </article>
+                <article class="card reveal d5">
+                    <span class="card-num">03</span>
+                    <h3>Rediseñar Leds Universal</h3>
+                    <p>La segunda web del grupo, con la misma base técnica.</p>
+                </article>
+            </div>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>05</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 06 · WORDPRESS ============ -->
+    <section class="slide" aria-label="Decisión: WordPress">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>02</b> — Decisiones</span>
+        </header>
+
+        <div class="slide-body" style="position:relative">
+            <span class="big-tag" aria-hidden="true">01</span>
+            <span class="kicker reveal d1">Análisis inicial · Decisión 01</span>
+            <h2 class="reveal d2">WordPress</h2>
+
+            <ul class="reasons">
+                <li class="reveal d3">
+                    <span class="rn">01</span>
+                    <span class="rt">Hosting ya contratado en la empresa
+                        <em>Se aprovecha el servicio que Lifud ya paga.</em>
+                    </span>
+                </li>
+                <li class="reveal d4">
+                    <span class="rn">02</span>
+                    <span class="rt">CMS fácil para personal no técnico
+                        <em>El equipo publica y edita sin tocar código.</em>
+                    </span>
+                </li>
+                <li class="reveal d5">
+                    <span class="rn">03</span>
+                    <span class="rt">Backend seguro sin construirlo desde cero
+                        <em>Menos trabajo y menos riesgo para la empresa.</em>
+                    </span>
+                </li>
+            </ul>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>06</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 07 · ELEMENTOR PRO ============ -->
+    <section class="slide" aria-label="Decisión: Elementor Pro">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>02</b> — Decisiones</span>
+        </header>
+
+        <div class="slide-body" style="position:relative">
+            <span class="big-tag" aria-hidden="true">02</span>
+            <span class="kicker reveal d1">Análisis inicial · Decisión 02</span>
+            <h2 class="reveal d2">Elementor Pro</h2>
+
+            <ul class="reasons">
+                <li class="reveal d3">
+                    <span class="rn">01</span>
+                    <span class="rt">El tema más popular y completo del mercado
+                        <em>Amplia comunidad, plantillas y soporte.</em>
+                    </span>
+                </li>
+                <li class="reveal d4">
+                    <span class="rn">02</span>
+                    <span class="rt">CSS personalizado en cada elemento
+                        <em>Se puede ajustar el estilo de cualquier componente.</em>
+                    </span>
+                </li>
+                <li class="reveal d5">
+                    <span class="rn">03</span>
+                    <span class="rt">Constructor de bloques cómodo
+                        <em>Persona no técnica puede mantenerla en el futuro.</em>
+                    </span>
+                </li>
+            </ul>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>07</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 08 · ARQUITECTURA ============ -->
+    <section class="slide" aria-label="Arquitectura de la solución">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>03</b> — Solución</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Arquitectura de la solución</span>
+            <h2 class="reveal d2">Cómo encaja</h2>
+
+            <div class="diagram">
+                <div class="node reveal d3">
+                    <b>Cliente</b>
+                    <span>Entra en la web y se identifica</span>
+                </div>
+                <div class="arrow reveal d3" aria-hidden="true"></div>
+                <div class="node reveal d4">
+                    <b>WordPress + Elementor</b>
+                    <span>Web pública y área privada</span>
+                </div>
+                <div class="arrow reveal d4" aria-hidden="true"></div>
+                <div class="node reveal d5">
+                    <b>Consulta</b>
+                    <span>Petición de stock al ERP</span>
+                </div>
+                <div class="arrow reveal d5" aria-hidden="true"></div>
+                <div class="node hot reveal d6">
+                    <b>ERP</b>
+                    <span>Datos reales de inventario</span>
+                </div>
+            </div>
+
+            <p class="diagram-note reveal d6">El inventario que ve el cliente es el del ERP: no se duplican datos.</p>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>08</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 09 · ÁREA PRIVADA ============ -->
+    <section class="slide" aria-label="Área privada de cliente">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>03</b> — Solución</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Área privada de cliente</span>
+            <h2 class="reveal d2">Login e inventario</h2>
+
+            <div class="steps">
+                <div class="step reveal d3">
+                    <div class="step-n">Paso 01</div>
+                    <h3>Se autentica</h3>
+                    <p>El cliente entra con su usuario y contraseña en la web.</p>
+                </div>
+                <div class="step reveal d4">
+                    <div class="step-n">Paso 02</div>
+                    <h3>Se consulta el ERP</h3>
+                    <p>La web pide el stock al sistema que ya usa la empresa.</p>
+                </div>
+                <div class="step reveal d5">
+                    <div class="step-n">Paso 03</div>
+                    <h3>Ve el stock</h3>
+                    <p>Disponibilidad y referencias, actualizadas en tiempo real.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>09</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 10 · LEDS UNIVERSAL ============ -->
+    <section class="slide lay-split" aria-label="Leds Universal">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>03</b> — Solución</span>
+        </header>
+
+        <div class="slide-body">
+            <div class="split-main">
+                <span class="kicker reveal d1">Segunda web del grupo</span>
+                <h2>
+                    <span class="mask m1"><span>Leds</span></span>
+                    <span class="mask m2"><span>Universal</span></span>
+                </h2>
+                <p class="lede reveal d3">Misma base técnica que Lifud —<b>WordPress y Elementor Pro</b>— con la identidad de su propia marca.</p>
+
+                <ul class="bullets">
+                    <li class="reveal d4">Estructura heredada del sitio de Lifud</li>
+                    <li class="reveal d5">Contenido y catálogo propios de la marca</li>
+                </ul>
+            </div>
+
+            <!-- HUECO DE IMAGEN: captura o mockup de Leds Universal -->
+            <figure class="img-slot reveal d3">
+                <div class="slot-frame">
+                    <span class="slot-tag">Captura · Leds Universal</span>
+                </div>
+                <figcaption><b>Fig. 03</b> &nbsp; Web de Leds Universal</figcaption>
+            </figure>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>10</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 11 · PLANIFICACIÓN ============ -->
+    <section class="slide" aria-label="Planificación">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>04</b> — Planificación</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Planificación</span>
+            <h2 class="reveal d2">Cuatro fases</h2>
+
+            <div class="timeline">
+                <div class="phase reveal d3">
+                    <div class="ph-label">Fase 1 · Análisis</div>
+                    <h3>Estructura</h3>
+                    <p>Contenidos, navegación y estilo de las dos webs.</p>
+                </div>
+                <div class="phase reveal d4">
+                    <div class="ph-label">Fase 2 · Montaje</div>
+                    <h3>WordPress</h3>
+                    <p>Instalación, Elementor Pro y páginas de Lifud.</p>
+                </div>
+                <div class="phase reveal d5">
+                    <div class="ph-label">Fase 3 · Portal</div>
+                    <h3>Login + ERP</h3>
+                    <p>Área privada y consulta de inventario.</p>
+                </div>
+                <div class="phase reveal d6">
+                    <div class="ph-label">Fase 4 · Grupo</div>
+                    <h3>Leds Universal</h3>
+                    <p>Segundo sitio, pruebas y entrega.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>11</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 12 · RESULTADOS ============ -->
+    <section class="slide" aria-label="Resultados esperados">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>04</b> — Planificación</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Resultados esperados</span>
+            <h2>
+                <span class="mask m1"><span>Lo que</span></span>
+                <span class="mask m2"><span>quedará<span style="color:var(--red)">.</span></span></span>
+            </h2>
+
+            <ul class="reasons">
+                <li class="reveal d3">
+                    <span class="rn">01</span>
+                    <span class="rt">Una web actualizada y mantenible
+                        <em>El equipo edita contenidos sin depender de terceros.</em>
+                    </span>
+                </li>
+                <li class="reveal d4">
+                    <span class="rn">02</span>
+                    <span class="rt">Clientes que consultan stock sin llamar
+                        <em>Menos carga para atención al cliente.</em>
+                    </span>
+                </li>
+                <li class="reveal d5">
+                    <span class="rn">03</span>
+                    <span class="rt">Dos webs coherentes del mismo grupo
+                        <em>Lifud y Leds Universal hablan el mismo idioma.</em>
+                    </span>
+                </li>
+            </ul>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>12</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 13 · APRENDIZAJES ============ -->
+    <section class="slide" aria-label="Aprendizajes">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>04</b> — Planificación</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Aprendizajes de las prácticas</span>
+            <h2 class="reveal d2">En la empresa</h2>
+
+            <div class="steps">
+                <div class="step reveal d3">
+                    <div class="step-n">01</div>
+                    <h3>Cliente real</h3>
+                    <p>Traducir lo que pide un cliente a decisiones técnicas.</p>
+                </div>
+                <div class="step reveal d4">
+                    <div class="step-n">02</div>
+                    <h3>WordPress en producción</h3>
+                    <p>Montar y mantener una web real con Elementor Pro.</p>
+                </div>
+                <div class="step reveal d5">
+                    <div class="step-n">03</div>
+                    <h3>Web + ERP</h3>
+                    <p>Conectar una web con los datos de un sistema externo.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>13</b> / 14</span>
+        </footer>
+    </section>
+
+    <!-- ============ 14 · CIERRE ============ -->
+    <section class="slide lay-close" aria-label="Cierre">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right">Lifud &nbsp;·&nbsp; Leds Universal</span>
+        </header>
+
+        <div class="slide-body">
+            <div class="close-row reveal d2">
+                <span class="close-square" aria-hidden="true"></span>
+                <h2>Gracias</h2>
+            </div>
+            <p class="lede reveal d4">Preguntas del tribunal — <b>Rediseño web y portal de cliente</b>, Grupo Lifud.</p>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Grupo Lifud <b style="color:var(--red)">■</b> España</span>
+            <span class="page">Septiembre 2026</span>
+        </footer>
+    </section>
+
+</main>
+</div>
+
+<!-- Progreso de la baraja (fuera del lienzo 16:9) -->
+<div class="deck-status" id="deckStatus" aria-hidden="true">
+    <span class="cur" id="statusCur">01</span>
+    <span class="track"><i id="statusBar" style="width:7%"></i></span>
+    <span id="statusTotal">14</span>
+</div>
+
+<!-- Controles de edición en línea -->
+<div class="edit-hotzone" id="editHotzone" title="Modo edición (E)"></div>
+<button class="edit-toggle" id="editToggle" title="Modo edición (E)">✏️ Editar</button>
+
+<script>
+/* ============================================================
+   1. CONTROLADOR DE DIAPOSITIVAS
+   - Escala el lienzo fijo 1920×1080 a la ventana
+   - Navegación: teclado, rueda, swipe y clic en los laterales
+   ============================================================ */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.stage = document.getElementById('deckStage');
+        this.current = 0;
+        this.lockUntil = 0;
+
+        this.setupStageScale();
+        this.setupKeyboard();
+        this.setupWheel();
+        this.setupTouch();
+        this.setupStatus();
+
+        /* Enlace directo: presentacion.html#7 abre en la diapositiva 7 */
+        const hashIndex = parseInt(window.location.hash.replace('#', ''), 10);
+        this.go(isNaN(hashIndex) ? 0 : hashIndex - 1);
+    }
+
+    setupStageScale() {
+        const scale = () => {
+            const f = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * f) / 2;
+            const y = (window.innerHeight - 1080 * f) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${f})`;
+        };
+        scale();
+        window.addEventListener('resize', scale);
+    }
+
+    setupKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.getAttribute && e.target.getAttribute('contenteditable')) return;
+            const k = e.key;
+            if (k === 'ArrowRight' || k === 'ArrowDown' || k === ' ' || k === 'PageDown' || k === 'Enter') {
+                e.preventDefault(); this.next();
+            } else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') {
+                e.preventDefault(); this.prev();
+            } else if (k === 'Home') { e.preventDefault(); this.go(0); }
+            else if (k === 'End') { e.preventDefault(); this.go(this.slides.length - 1); }
+        });
+    }
+
+    setupWheel() {
+        window.addEventListener('wheel', (e) => {
+            const now = Date.now();
+            if (now < this.lockUntil) return;
+            if (Math.abs(e.deltaY) < 24 && Math.abs(e.deltaX) < 24) return;
+            this.lockUntil = now + 750;
+            (e.deltaY > 0 || e.deltaX > 0) ? this.next() : this.prev();
+        }, { passive: true });
+    }
+
+    setupTouch() {
+        let sx = 0, sy = 0;
+        window.addEventListener('touchstart', (e) => {
+            sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+        }, { passive: true });
+        window.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - sx;
+            const dy = e.changedTouches[0].clientY - sy;
+            if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                dx < 0 ? this.next() : this.prev();
+            }
+        }, { passive: true });
+    }
+
+    setupStatus() {
+        document.getElementById('statusTotal').textContent =
+            String(this.slides.length).padStart(2, '0');
+    }
+
+    next() { this.go(this.current + 1); }
+    prev() { this.go(this.current - 1); }
+
+    go(index) {
+        this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((s, i) => {
+            const on = i === this.current;
+            s.classList.toggle('active', on);
+            s.classList.toggle('visible', on);
+        });
+        document.getElementById('statusCur').textContent =
+            String(this.current + 1).padStart(2, '0');
+        document.getElementById('statusBar').style.width =
+            ((this.current + 1) / this.slides.length * 100) + '%';
+
+        if (window.location.hash !== '#' + (this.current + 1)) {
+            history.replaceState(null, '', '#' + (this.current + 1));
+        }
+    }
+}
+
+/* ============================================================
+   2. EDICIÓN EN LÍNEA
+   - Se activa con la tecla E, con el botón o con la esquina sup. izq.
+   - Guarda automáticamente en localStorage
+   - Ctrl+S / ⌘S descarga el HTML con los cambios aplicados
+   ============================================================ */
+class InlineEditor {
+    constructor(deck) {
+        this.deck = deck;
+        this.isActive = false;
+        this.storageKey = 'lifud-deck-v1';
+        this.selector =
+            '.kicker, h1, h2, .lede, .index-item h3, .index-item p, .card h3, .card p, ' +
+            '.reasons .rt, .reasons .rt em, .step h3, .step p, .step-n, .phase h3, .phase p, ' +
+            '.ph-label, .node b, .node span, .diagram-note, .bullets li, .bullets li span, ' +
+            '.stat .k, .stat .v, .img-slot figcaption, .slot-tag, .chrome-top span, .chrome-bottom span';
+        this.buildIds();
+        this.restore();
+        this.setupUI();
+    }
+
+    /* Identificador estable por elemento dentro de la baraja */
+    buildIds() {
+        this.nodes = Array.from(document.querySelectorAll('.slide ' + this.selector.split(',').join(', .slide ')));
+        this.nodes.forEach((el, i) => {
+            if (!el.dataset.edId) el.dataset.edId = 'e' + i;
+        });
+    }
+
+    restore() {
+        try {
+            const data = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+            this.nodes.forEach((el) => {
+                if (data[el.dataset.edId] !== undefined) el.innerHTML = data[el.dataset.edId];
+            });
+        } catch (err) { /* almacenamiento no disponible */ }
+    }
+
+    save() {
+        const data = {};
+        this.nodes.forEach((el) => { data[el.dataset.edId] = el.innerHTML; });
+        try { localStorage.setItem(this.storageKey, JSON.stringify(data)); } catch (err) {}
+    }
+
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('edit-mode', this.isActive);
+        document.querySelectorAll(this.nodes.map(n => n.tagName.toLowerCase()).filter((v, i, a) => a.indexOf(v) === i).join(','))
+            .forEach(() => {});
+        this.nodes.forEach((el) => {
+            if (this.isActive) el.setAttribute('contenteditable', 'true');
+            else {
+                el.removeAttribute('contenteditable');
+                if (el.innerHTML.trim() === '') el.innerHTML = 'Texto';
+            }
+        });
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        document.getElementById('editToggle').textContent = this.isActive ? '✔ Guardado' : '✏️ Editar';
+        if (this.isActive) {
+            this.nodes.forEach((el) => el.addEventListener('input', () => this.save()));
+        }
+        this.save();
+    }
+
+    exportFile() {
+        const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'presentacion-practicas.html';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    setupUI() {
+        const toggle = document.getElementById('editToggle');
+        const hotzone = document.getElementById('editHotzone');
+        let hideTimeout = null;
+
+        toggle.addEventListener('click', () => this.toggleEditMode());
+        hotzone.addEventListener('click', () => this.toggleEditMode());
+
+        const show = () => { clearTimeout(hideTimeout); toggle.classList.add('show'); };
+        const hide = () => {
+            hideTimeout = setTimeout(() => {
+                if (!this.isActive) toggle.classList.remove('show');
+            }, 400);
+        };
+        hotzone.addEventListener('mouseenter', show);
+        hotzone.addEventListener('mouseleave', hide);
+        toggle.addEventListener('mouseenter', show);
+        toggle.addEventListener('mouseleave', hide);
+
+        document.addEventListener('keydown', (e) => {
+            const editing = e.target.getAttribute && e.target.getAttribute('contenteditable');
+            if ((e.key === 'e' || e.key === 'E') && !editing) this.toggleEditMode();
+            if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                this.save();
+                this.exportFile();
+            }
+        });
+    }
+}
+
+/* ============================================================
+   3. ARRANQUE
+   ============================================================ */
+const deck = new SlidePresentation();
+const editor = new InlineEditor(deck);
+</script>
+</body>
+</html>
