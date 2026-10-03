@@ -781,7 +781,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                 <div class="index-item">
                     <span class="idx-num">03</span>
                     <h3>Solución</h3>
-                    <p>Arquitectura, área privada con ERP y Leds Universal.</p>
+                    <p>Arquitectura, ficha de producto, área privada y Leds Universal.</p>
                 </div>
                 <div class="index-item">
                     <span class="idx-num">04</span>
@@ -793,7 +793,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>02</b> / 14</span>
+            <span class="page"><b>02</b> / 15</span>
         </footer>
     </section>
 
@@ -832,7 +832,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>03</b> / 14</span>
+            <span class="page"><b>03</b> / 15</span>
         </footer>
     </section>
 
@@ -875,7 +875,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>04</b> / 14</span>
+            <span class="page"><b>04</b> / 15</span>
         </footer>
     </section>
 
@@ -911,7 +911,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>05</b> / 14</span>
+            <span class="page"><b>05</b> / 15</span>
         </footer>
     </section>
 
@@ -951,7 +951,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>06</b> / 14</span>
+            <span class="page"><b>06</b> / 15</span>
         </footer>
     </section>
 
@@ -991,7 +991,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>07</b> / 14</span>
+            <span class="page"><b>07</b> / 15</span>
         </footer>
     </section>
 
@@ -1019,7 +1019,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                 <div class="arrow reveal d4" aria-hidden="true"></div>
                 <div class="node reveal d5">
                     <b>Consulta</b>
-                    <span>Petición de stock al ERP</span>
+                    <span>Shortcode en la ficha, con caché de 15 min</span>
                 </div>
                 <div class="arrow reveal d5" aria-hidden="true"></div>
                 <div class="node hot reveal d6">
@@ -1028,16 +1028,61 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                 </div>
             </div>
 
-            <p class="diagram-note reveal d6">El inventario que ve el cliente es el del ERP: no se duplican datos.</p>
+            <p class="diagram-note reveal d6">El inventario que ve el cliente es el del ERP: se pide con el shortcode <b>[stock_api]</b> y caché de 15 minutos, sin duplicar datos.</p>
         </div>
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>08</b> / 14</span>
+            <span class="page"><b>08</b> / 15</span>
         </footer>
     </section>
 
-    <!-- ============ 09 · ÁREA PRIVADA ============ -->
+    <!-- ============ 09 · IMPLEMENTACIÓN ============ -->
+    <section class="slide" aria-label="Implementación de la ficha de producto">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>03</b> — Solución</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Implementación · Ficha de producto</span>
+            <h2 class="reveal d2">Cómo se monta</h2>
+
+            <ul class="reasons">
+                <li class="reveal d3">
+                    <span class="rn">01</span>
+                    <span class="rt">Jerarquía y migas de pan con WooCommerce
+                        <em>Se edita la ficha de producto: sin carrito, sin botón de compra y sin su menú.</em>
+                    </span>
+                </li>
+                <li class="reveal d4">
+                    <span class="rn">02</span>
+                    <span class="rt">Características del producto con ACF
+                        <em>Campos personalizados desde el propio editor de WordPress.</em>
+                    </span>
+                </li>
+                <li class="reveal d5">
+                    <span class="rn">03</span>
+                    <span class="rt">Plantillas según el número de campos
+                        <em>Una variante para productos con 6 características y otra para 8.</em>
+                    </span>
+                </li>
+                <li class="reveal d6">
+                    <span class="rn">04</span>
+                    <span class="rt">Código propio en un tema hijo
+                        <em>Shortcodes y funciones en Hello Elementor Child, sin plugins de snippet.</em>
+                    </span>
+                </li>
+            </ul>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>09</b> / 15</span>
+        </footer>
+    </section>
+
+    <!-- ============ 10 · ÁREA PRIVADA ============ -->
     <section class="slide" aria-label="Área privada de cliente">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1065,15 +1110,17 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                     <p>Disponibilidad y referencias, actualizadas en tiempo real.</p>
                 </div>
             </div>
+
+            <p class="diagram-note reveal d6">Pendiente: definir la autenticación con la API (¿API intermedia?) y mostrar el stock solo al cliente que tiene sesión iniciada.</p>
         </div>
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>09</b> / 14</span>
+            <span class="page"><b>10</b> / 15</span>
         </footer>
     </section>
 
-    <!-- ============ 10 · LEDS UNIVERSAL ============ -->
+    <!-- ============ 11 · LEDS UNIVERSAL ============ -->
     <section class="slide lay-split" aria-label="Leds Universal">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1106,11 +1153,11 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>10</b> / 14</span>
+            <span class="page"><b>11</b> / 15</span>
         </footer>
     </section>
 
-    <!-- ============ 11 · PLANIFICACIÓN ============ -->
+    <!-- ============ 12 · PLANIFICACIÓN ============ -->
     <section class="slide" aria-label="Planificación">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1147,11 +1194,11 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>11</b> / 14</span>
+            <span class="page"><b>12</b> / 15</span>
         </footer>
     </section>
 
-    <!-- ============ 12 · RESULTADOS ============ -->
+    <!-- ============ 13 · RESULTADOS ============ -->
     <section class="slide" aria-label="Resultados esperados">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1189,11 +1236,11 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>12</b> / 14</span>
+            <span class="page"><b>13</b> / 15</span>
         </footer>
     </section>
 
-    <!-- ============ 13 · APRENDIZAJES ============ -->
+    <!-- ============ 14 · APRENDIZAJES ============ -->
     <section class="slide" aria-label="Aprendizajes">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1225,11 +1272,11 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>13</b> / 14</span>
+            <span class="page"><b>14</b> / 15</span>
         </footer>
     </section>
 
-    <!-- ============ 14 · CIERRE ============ -->
+    <!-- ============ 15 · CIERRE ============ -->
     <section class="slide lay-close" aria-label="Cierre">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1257,7 +1304,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 <div class="deck-status" id="deckStatus" aria-hidden="true">
     <span class="cur" id="statusCur">01</span>
     <span class="track"><i id="statusBar" style="width:7%"></i></span>
-    <span id="statusTotal">14</span>
+    <span id="statusTotal">15</span>
 </div>
 
 <!-- Controles de edición en línea -->
@@ -1372,7 +1419,7 @@ class InlineEditor {
     constructor(deck) {
         this.deck = deck;
         this.isActive = false;
-        this.storageKey = 'lifud-deck-v1';
+        this.storageKey = 'lifud-deck-v2';
         this.selector =
             '.kicker, h1, h2, .lede, .index-item h3, .index-item p, .card h3, .card p, ' +
             '.reasons .rt, .reasons .rt em, .step h3, .step p, .step-n, .phase h3, .phase p, ' +
