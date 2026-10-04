@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "devStart": "nodemon index.js",
+    "devMysql": "nodemon mysql.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,7 +22,8 @@
   "dependencies": {
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
