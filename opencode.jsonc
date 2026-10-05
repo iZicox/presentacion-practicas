@@ -1,0 +1,10 @@
+// opencode.jsonc  (en la raíz del proyecto, junto a AGENTS.md)
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "architect",
+  // "model": "proveedor/modelo",
+  "permissions": [
+    { "action": "websearch", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git push *", "effect": "ask" }
+  ]
+}
