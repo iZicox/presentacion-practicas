@@ -65,13 +65,22 @@ jQuery(function ($) {
         const $panel = $container.find('.luc-filters-panel');
         const $label = $button.find('.luc-filters-toggle__label');
 
+        const duration = 200;
+
         $button.on('click', function () {
             const isOpen = $button.attr('aria-expanded') === 'true';
 
             $button.attr('aria-expanded', String(!isOpen));
-            $panel.prop('hidden', isOpen);
-
             $label.text(isOpen ? 'Mostrar filtros' : 'Ocultar filtros');
+
+            // Corta la animación anterior si se hace clic rápido.
+            $panel.stop(true, true);
+
+            if (isOpen) {
+                $panel.slideUp(duration);
+            } else {
+                $panel.slideDown(duration);
+            }
         });
     });
 

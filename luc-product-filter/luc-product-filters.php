@@ -2,7 +2,7 @@
 /**
  * Plugin Name: LUC Product Filters
  * Description: Filtros de productos WooCommerce por atributos, mediante rangos y casillas.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Requires PHP: 7.4
  * Author: Leds Universal Components
  */
@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
 
 define('LUC_PF_PATH', plugin_dir_path(__FILE__));
 define('LUC_PF_URL', plugin_dir_url(__FILE__));
-define('LUC_PF_VERSION', '1.1.0');
+define('LUC_PF_VERSION', '1.1.1');
 
 require_once LUC_PF_PATH . 'includes/config.php';
 require_once LUC_PF_PATH . 'includes/terms.php';

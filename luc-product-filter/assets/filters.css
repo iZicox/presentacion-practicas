@@ -46,10 +46,8 @@
 
 .luc-filters-panel {
     width: 100%;
-}
-
-.luc-filters-panel[hidden] {
-    display: none;
+    /* Evita que el contenido se desborde durante la animación. */
+    overflow: hidden;
 }
 
 .luc-filters {
@@ -77,7 +75,8 @@
 }
 
 .luc-range__slider {
-    margin: 0 10px 20px;
+    /* Deja aire para que el contorno de foco no lo recorte el panel. */
+    margin: 0 16px 20px;
 }
 
 
