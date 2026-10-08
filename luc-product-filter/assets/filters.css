@@ -1,0 +1,101 @@
+.luc-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.luc-filters .luc-filter {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.luc-filters .luc-filter legend {
+    width: auto;
+    margin-bottom: 12px;
+    padding: 0;
+    font-weight: 600;
+}
+
+.luc-range__summary {
+    margin-bottom: 16px;
+}
+
+.luc-range__slider {
+    margin: 0 10px 20px;
+}
+
+
+.luc-checkbox__options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.luc-checkbox__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.luc-checkbox__option input {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.luc-filters__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.luc-filters__actions button {
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+/* Estilos locales de jQuery UI Slider. */
+
+.luc-range .ui-slider {
+    position: relative;
+    height: 6px;
+    border: 0;
+    border-radius: 4px;
+    background: #d9d9d9;
+    touch-action: none;
+}
+
+.luc-range .ui-slider-range {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    height: 100%;
+    border-radius: 4px;
+    background: #2271b1;
+}
+
+.luc-range .ui-slider-handle {
+    position: absolute;
+    z-index: 2;
+    top: -6px;
+    width: 18px;
+    height: 18px;
+    margin-left: -9px;
+    border: 2px solid #2271b1;
+    border-radius: 50%;
+    background: #fff;
+    cursor: grab;
+    touch-action: none;
+}
+
+.luc-range .ui-slider-handle:focus {
+    outline: 2px solid #1d2327;
+    outline-offset: 3px;
+}
+
+.luc-range .ui-slider-handle:active {
+    cursor: grabbing;
+}
