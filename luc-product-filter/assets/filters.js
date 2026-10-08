@@ -55,6 +55,26 @@ jQuery(function ($) {
         });
     });
 
+    /*
+     * Contenedor con botón para abrir y cerrar el panel de filtros.
+     * Cada instancia se maneja de forma independiente.
+     */
+    $('[data-luc-filters-container]').each(function () {
+        const $container = $(this);
+        const $button = $container.find('.luc-filters-toggle');
+        const $panel = $container.find('.luc-filters-panel');
+        const $label = $button.find('.luc-filters-toggle__label');
+
+        $button.on('click', function () {
+            const isOpen = $button.attr('aria-expanded') === 'true';
+
+            $button.attr('aria-expanded', String(!isOpen));
+            $panel.prop('hidden', isOpen);
+
+            $label.text(isOpen ? 'Mostrar filtros' : 'Ocultar filtros');
+        });
+    });
+
     $('.luc-filters').on('submit', function () {
         /*
          * No enviar límites vacíos si el usuario
