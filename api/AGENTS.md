@@ -15,11 +15,10 @@ WordPress  →  API Intermedia  →  Túnel Cloudflare  →  API del ERP  →  B
 
 | Pieza | Qué hace | Agente |
 |---|---|---|
-| WordPress | Si el usuario está logueado, pide el stock y lo muestra | `@wordpress-sec` |
-| API Intermedia | Comprueba el token de WordPress y reenvía la petición al ERP | `@middleware-dev` |
-| Túnel Cloudflare | Conecta con el ERP sin abrir puertos | `@infra-tunnel` |
-| API del ERP | Consulta el stock en la BD y lo devuelve | `@internal-api-guard` |
-| Coordinación | Reparte el trabajo y comprueba que todo encaje | `@architect` |
+| WordPress | Si el usuario está logueado, pide el stock y lo muestra | `@wordpress` |
+| API Intermedia | Comprueba el token de WordPress y reenvía la petición al ERP | `@api` |
+| Túnel Cloudflare | Conecta con el ERP sin abrir puertos | `@tunnel` |
+| API del ERP | Consulta el stock en la BD y lo devuelve | `@api` |
 
 ## Contrato de la API
 
@@ -54,7 +53,8 @@ Es el mismo en las dos APIs (la intermedia y la del ERP):
 
 - **Simple primero.** Lo mínimo que funcione. Nada de capas, librerías o documentos «por si acaso».
 - **Sin documentación pesada.** No se crean ADR, OpenAPI ni informes. Este archivo y los comentarios del código bastan.
-- Cada agente trabaja solo en su parte. Si necesita algo de otra, se lo dice a `@architect`.
+- Hablas tú directamente con el agente de la pieza que toca: `@wordpress`, `@api` o `@tunnel`. Un agente solo toca su parte; si una tarea engancha varias piezas, se parte en varias peticiones.
+- Un agente = una tarea corta, hecha en una sola pasada. Si algo no está claro, pregunta una vez y sigue.
 - Explica en lenguaje claro: quien desarrolla es un programador junior.
 - Pregunta antes de tocar Cloudflare, la base de datos o instalar dependencias.
 
