@@ -752,7 +752,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Grupo Lifud <b style="color:var(--red)">■</b> España</span>
-            <span class="page">Septiembre 2026</span>
+            <span class="page">Octubre 2026</span>
         </footer>
     </section>
 
@@ -781,19 +781,19 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                 <div class="index-item">
                     <span class="idx-num">03</span>
                     <h3>Solución</h3>
-                    <p>Arquitectura, ficha de producto, área privada y Leds Universal.</p>
+                    <p>Arquitectura con el ERP, ficha de producto, área privada, filtros y Leds Universal.</p>
                 </div>
                 <div class="index-item">
                     <span class="idx-num">04</span>
                     <h3>Planificación</h3>
-                    <p>Fases, resultados esperados y aprendizajes.</p>
+                    <p>Hitos del diario, resultados esperados y aprendizajes.</p>
                 </div>
             </div>
         </div>
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>02</b> / 15</span>
+            <span class="page"><b>02</b> / 16</span>
         </footer>
     </section>
 
@@ -832,7 +832,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>03</b> / 15</span>
+            <span class="page"><b>03</b> / 16</span>
         </footer>
     </section>
 
@@ -875,7 +875,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>04</b> / 15</span>
+            <span class="page"><b>04</b> / 16</span>
         </footer>
     </section>
 
@@ -911,7 +911,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>05</b> / 15</span>
+            <span class="page"><b>05</b> / 16</span>
         </footer>
     </section>
 
@@ -951,7 +951,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>06</b> / 15</span>
+            <span class="page"><b>06</b> / 16</span>
         </footer>
     </section>
 
@@ -991,7 +991,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>07</b> / 15</span>
+            <span class="page"><b>07</b> / 16</span>
         </footer>
     </section>
 
@@ -1014,26 +1014,26 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                 <div class="arrow reveal d3" aria-hidden="true"></div>
                 <div class="node reveal d4">
                     <b>WordPress + Elementor</b>
-                    <span>Web pública y área privada</span>
+                    <span>Comprueba la sesión y llama al Worker</span>
                 </div>
                 <div class="arrow reveal d4" aria-hidden="true"></div>
                 <div class="node reveal d5">
-                    <b>Consulta</b>
-                    <span>Shortcode en la ficha, con caché de 15 min</span>
+                    <b>Worker Cloudflare</b>
+                    <span>Service token de Cloudflare Access</span>
                 </div>
                 <div class="arrow reveal d5" aria-hidden="true"></div>
                 <div class="node hot reveal d6">
                     <b>ERP</b>
-                    <span>Datos reales de inventario</span>
+                    <span>GET /producto/:id solo lectura, vía túnel</span>
                 </div>
             </div>
 
-            <p class="diagram-note reveal d6">El inventario que ve el cliente es el del ERP: se pide con el shortcode <b>[stock_api]</b> y caché de 15 minutos, sin duplicar datos.</p>
+            <p class="diagram-note reveal d6">Flujo: navegador → WordPress → Worker → túnel → API del ERP, sin abrir puertos a internet ni que el navegador hable con el Worker. En la ficha, el shortcode <b>[stock_api]</b> pide el dato con caché de 15 minutos.</p>
         </div>
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>08</b> / 15</span>
+            <span class="page"><b>08</b> / 16</span>
         </footer>
     </section>
 
@@ -1078,7 +1078,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>09</b> / 15</span>
+            <span class="page"><b>09</b> / 16</span>
         </footer>
     </section>
 
@@ -1097,26 +1097,26 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
                 <div class="step reveal d3">
                     <div class="step-n">Paso 01</div>
                     <h3>Se autentica</h3>
-                    <p>El cliente entra con su usuario y contraseña en la web.</p>
+                    <p>El shortcode comprueba <b>is_user_logged_in()</b>: sin sesión no se llama a la API.</p>
                 </div>
                 <div class="step reveal d4">
                     <div class="step-n">Paso 02</div>
-                    <h3>Se consulta el ERP</h3>
-                    <p>La web pide el stock al sistema que ya usa la empresa.</p>
+                    <h3>Llama al Worker</h3>
+                    <p>WordPress envía las cabeceras <b>CF-Access-Client-Id</b> y <b>CF-Access-Client-Secret</b>.</p>
                 </div>
                 <div class="step reveal d5">
                     <div class="step-n">Paso 03</div>
                     <h3>Ve el stock</h3>
-                    <p>Disponibilidad y referencias, actualizadas en tiempo real.</p>
+                    <p>El Worker consulta el ERP por túnel y devuelve la disponibilidad.</p>
                 </div>
             </div>
 
-            <p class="diagram-note reveal d6">Pendiente: definir la autenticación con la API (¿API intermedia?) y mostrar el stock solo al cliente que tiene sesión iniciada.</p>
+            <p class="diagram-note reveal d6">Autenticación definida: Cloudflare Access con service token entre WordPress y el Worker (secreto en <b>wp-config.php</b>). Si la página se cachea, el shortcode pinta un contenedor vacío y el dato llega por un endpoint REST con <b>permission_callback</b>.</p>
         </div>
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>10</b> / 15</span>
+            <span class="page"><b>10</b> / 16</span>
         </footer>
     </section>
 
@@ -1153,11 +1153,56 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>11</b> / 15</span>
+            <span class="page"><b>11</b> / 16</span>
         </footer>
     </section>
 
-    <!-- ============ 12 · PLANIFICACIÓN ============ -->
+    <!-- ============ 12 · FILTRO DE CATÁLOGO ============ -->
+    <section class="slide" aria-label="Filtro de catálogo">
+        <header class="chrome-top">
+            <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
+            <span class="mark-right"><b>03</b> — Solución</span>
+        </header>
+
+        <div class="slide-body">
+            <span class="kicker reveal d1">Implementación · Filtros del catálogo</span>
+            <h2 class="reveal d2">Filtrar productos</h2>
+
+            <ul class="reasons">
+                <li class="reveal d3">
+                    <span class="rn">01</span>
+                    <span class="rt">Slider doble de rango para el atributo Size
+                        <em>Shortcode [filtro_rango_size] con jQuery UI Slider: genera ?size_min=20&amp;size_max=60.</em>
+                    </span>
+                </li>
+                <li class="reveal d4">
+                    <span class="rn">02</span>
+                    <span class="rt">Filtrado en la consulta principal
+                        <em>Tax_query en woocommerce_product_query, conservando el resto de parámetros de la URL.</em>
+                    </span>
+                </li>
+                <li class="reveal d5">
+                    <span class="rn">03</span>
+                    <span class="rt">Plugin propio luc-product-filter
+                        <em>Los plugins existentes cobraban el filtro de rango; se optó por crear uno propio.</em>
+                    </span>
+                </li>
+                <li class="reveal d6">
+                    <span class="rn">04</span>
+                    <span class="rt">Próximo paso: el resto de atributos
+                        <em>Ampliar el código del slider con los demás atributos en casillas de verificación.</em>
+                    </span>
+                </li>
+            </ul>
+        </div>
+
+        <footer class="chrome-bottom">
+            <span>Lifud · Leds Universal</span>
+            <span class="page"><b>12</b> / 16</span>
+        </footer>
+    </section>
+
+    <!-- ============ 13 · PLANIFICACIÓN ============ -->
     <section class="slide" aria-label="Planificación">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1165,40 +1210,40 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
         </header>
 
         <div class="slide-body">
-            <span class="kicker reveal d1">Planificación</span>
-            <h2 class="reveal d2">Cuatro fases</h2>
+            <span class="kicker reveal d1">Trabajo realizado · Diario</span>
+            <h2 class="reveal d2">Cuatro hitos</h2>
 
             <div class="timeline">
                 <div class="phase reveal d3">
-                    <div class="ph-label">Fase 1 · Análisis</div>
-                    <h3>Estructura</h3>
-                    <p>Contenidos, navegación y estilo de las dos webs.</p>
+                    <div class="ph-label">03 · Oct · Análisis</div>
+                    <h3>Shortcode de stock</h3>
+                    <p>[stock_api] en la ficha de producto con caché de 15 minutos.</p>
                 </div>
                 <div class="phase reveal d4">
-                    <div class="ph-label">Fase 2 · Montaje</div>
-                    <h3>WordPress</h3>
-                    <p>Instalación, Elementor Pro y páginas de Lifud.</p>
+                    <div class="ph-label">05 · Oct · Arquitectura</div>
+                    <h3>Integración ERP</h3>
+                    <p>Flujo WordPress → Worker → túnel → API del ERP.</p>
                 </div>
                 <div class="phase reveal d5">
-                    <div class="ph-label">Fase 3 · Portal</div>
-                    <h3>Login + ERP</h3>
-                    <p>Área privada y consulta de inventario.</p>
+                    <div class="ph-label">07 · Oct · Catálogo</div>
+                    <h3>Filtro de rango</h3>
+                    <p>Slider doble de tamaño con shortcode y tax_query.</p>
                 </div>
                 <div class="phase reveal d6">
-                    <div class="ph-label">Fase 4 · Grupo</div>
-                    <h3>Leds Universal</h3>
-                    <p>Segundo sitio, pruebas y entrega.</p>
+                    <div class="ph-label">08 · Oct · Plugin</div>
+                    <h3>luc-product-filter</h3>
+                    <p>Filtro propio porque el resto cobraba el rango.</p>
                 </div>
             </div>
         </div>
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>12</b> / 15</span>
+            <span class="page"><b>13</b> / 16</span>
         </footer>
     </section>
 
-    <!-- ============ 13 · RESULTADOS ============ -->
+    <!-- ============ 14 · RESULTADOS ============ -->
     <section class="slide" aria-label="Resultados esperados">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1236,11 +1281,11 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>13</b> / 15</span>
+            <span class="page"><b>14</b> / 16</span>
         </footer>
     </section>
 
-    <!-- ============ 14 · APRENDIZAJES ============ -->
+    <!-- ============ 15 · APRENDIZAJES ============ -->
     <section class="slide" aria-label="Aprendizajes">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1272,11 +1317,11 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Lifud · Leds Universal</span>
-            <span class="page"><b>14</b> / 15</span>
+            <span class="page"><b>15</b> / 16</span>
         </footer>
     </section>
 
-    <!-- ============ 15 · CIERRE ============ -->
+    <!-- ============ 16 · CIERRE ============ -->
     <section class="slide lay-close" aria-label="Cierre">
         <header class="chrome-top">
             <span class="ct-left">Prácticas FP · Desarrollo de Aplicaciones Web</span>
@@ -1293,7 +1338,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 
         <footer class="chrome-bottom">
             <span>Grupo Lifud <b style="color:var(--red)">■</b> España</span>
-            <span class="page">Septiembre 2026</span>
+            <span class="page">Octubre 2026</span>
         </footer>
     </section>
 
@@ -1304,7 +1349,7 @@ body.edit-mode .slide [contenteditable="true"]:focus { outline: 2px solid var(--
 <div class="deck-status" id="deckStatus" aria-hidden="true">
     <span class="cur" id="statusCur">01</span>
     <span class="track"><i id="statusBar" style="width:7%"></i></span>
-    <span id="statusTotal">15</span>
+    <span id="statusTotal">16</span>
 </div>
 
 <!-- Controles de edición en línea -->
@@ -1419,7 +1464,7 @@ class InlineEditor {
     constructor(deck) {
         this.deck = deck;
         this.isActive = false;
-        this.storageKey = 'lifud-deck-v2';
+        this.storageKey = 'lifud-deck-v3';
         this.selector =
             '.kicker, h1, h2, .lede, .index-item h3, .index-item p, .card h3, .card p, ' +
             '.reasons .rt, .reasons .rt em, .step h3, .step p, .step-n, .phase h3, .phase p, ' +

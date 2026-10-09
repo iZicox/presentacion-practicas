@@ -1,0 +1,5 @@
+npx wrangler@latest whoami
+npx wrangler@latest login (si no estas autenticado)
+npm install --save-dev wrangler@latest
+npx wrangler d1 create leds-crm (crea la base de datos)
+npx wrangler d1 execute leds-crm --remote --file=./schema.sql (para ejecutar el script del schema.sql)

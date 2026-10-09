@@ -1,0 +1,6 @@
+name = "leds-d1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "leds-crm"
+database_id = "1df28189-48e2-4151-aace-0b92b54fea6d"
