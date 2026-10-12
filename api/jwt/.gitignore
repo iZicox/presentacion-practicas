@@ -1,0 +1,8 @@
+# dependencias
+node_modules/
+
+# secretos: nunca se suben al repositorio
+.env
+
+# base de datos local con usuarios
+db.json
