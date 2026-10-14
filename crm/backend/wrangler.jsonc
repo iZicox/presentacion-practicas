@@ -10,7 +10,15 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	"d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "crm-interna",
+      "database_id": "3e1ce357-0a32-4bb7-a172-f83fb3ac6549",
+	  "remote": true
+    }
+  ]
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

@@ -9,6 +9,7 @@
 --   5. CONTACT
 --   6. INTERACTION
 --   7. PURCHASE
+--   8. USERS
 --
 -- INTERACTION:
 --   Simple commercial follow-up history.
@@ -189,6 +190,20 @@ CREATE TABLE IF NOT EXISTS PURCHASE (
     FOREIGN KEY (COMPANY_ID)
         REFERENCES COMPANY(ID)
         ON DELETE CASCADE
+);
+
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    email TEXT COLLATE NOCASE NOT NULL UNIQUE,
+
+    password_hash TEXT NOT NULL,
+
+    is_active INTEGER NOT NULL DEFAULT 1
+        CHECK (is_active IN (0, 1)),
+
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
