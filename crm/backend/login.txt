@@ -1,0 +1,347 @@
+Ahora añadimos `POST /api/auth/login`: buscará el usuario, comprobará la contraseña y guardará un **JWT** en una cookie `HttpOnly` que caducará a los cinco minutos.
+
+No cambies el registro que ya funciona. Añadiremos el login en el mismo archivo de rutas.
+
+## 1. Añadir las variables de entorno
+
+En `.dev.vars`, conserva lo que ya tienes y añade:
+
+```dotenv
+JWT_SECRET="PEGA_AQUI_OTRO_SECRETO_ALEATORIO"
+COOKIE_SECURE="false"
+```
+
+El archivo quedará aproximadamente así:
+
+```dotenv
+REGISTRATION_KEY="TU_CLAVE_DE_REGISTRO"
+APP_ORIGIN="http://localhost:5173"
+JWT_SECRET="TU_SECRETO_PARA_FIRMAR_JWT"
+COOKIE_SECURE="false"
+```
+
+Genera un secreto distinto de `REGISTRATION_KEY`:
+
+```bash
+openssl rand -hex 32
+```
+
+Para desarrollo local utilizaremos `COOKIE_SECURE="false"`. En producción debe ser `"true"` y utilizar HTTPS. El atributo `Secure` restringe el envío de la cookie a conexiones seguras. [developer.mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
+
+## 2. Actualizar `src/types.ts`
+
+Añade las dos propiedades nuevas:
+
+```ts
+export interface CloudflareBindings {
+  DB: D1Database;
+  REGISTRATION_KEY: string;
+  APP_ORIGIN: string;
+  JWT_SECRET: string;
+  COOKIE_SECURE: string;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  password_hash: string;
+  is_active: number;
+  created_at: string;
+}
+
+export interface AppEnv {
+  Bindings: CloudflareBindings;
+}
+```
+
+## 3. Comprobar la función de contraseñas
+
+En `src/auth/auth.security.ts` ya deberías tener esta función:
+
+```ts
+export async function verifyPassword(
+  password: string,
+  passwordHash: string,
+): Promise<boolean> {
+  if (!passwordFitsBcrypt(password)) {
+    return false;
+  }
+
+  return compare(password, passwordHash);
+}
+```
+
+Utilizaremos esta función, no generaremos un hash nuevo para compararlo como texto con el anterior.
+
+## 4. Añadir imports en `auth.routes.ts`
+
+Al principio del archivo, combina tus imports existentes con estos:
+
+```ts
+import { Hono } from "hono";
+import { z } from "zod";
+import { sign } from "hono/jwt";
+import { setCookie } from "hono/cookie";
+
+import type { AppEnv, User } from "../types";
+
+import {
+  hashPassword,
+  passwordFitsBcrypt,
+  verifyPassword,
+} from "./auth.security";
+```
+
+Hono incluye tanto la función `sign` para crear el JWT como `setCookie` para entregarlo en la respuesta HTTP. [hono](https://hono.dev/docs/helpers/jwt)
+
+Mantén una sola instancia:
+
+```ts
+const authRoutes = new Hono<AppEnv>();
+```
+
+## 5. Añadir la ruta de login
+
+Pega este bloque después de tu ruta `/register` y antes de:
+
+```ts
+export default authRoutes;
+```
+
+```ts
+const loginSchema = z.object({
+  email: z.string()
+    .trim()
+    .toLowerCase()
+    .email()
+    .max(254),
+
+  password: z.string()
+    .min(1)
+    .refine(passwordFitsBcrypt),
+});
+
+authRoutes.post("/login", async (c) => {
+  c.header("Cache-Control", "no-store");
+
+  // 1. Comprobar el origen para evitar login CSRF.
+  const origin = c.req.header("Origin");
+
+  if (!origin || origin !== c.env.APP_ORIGIN) {
+    return c.json(
+      {
+        error: "Origen de la petición no permitido",
+      },
+      403,
+    );
+  }
+
+  // 2. Exigir un cuerpo JSON.
+  const contentType = c.req
+    .header("Content-Type")
+    ?.split(";")[0]
+    .trim()
+    .toLowerCase();
+
+  if (contentType !== "application/json") {
+    return c.json(
+      {
+        error: "Debes enviar application/json",
+      },
+      415,
+    );
+  }
+
+  // 3. Leer y validar las credenciales.
+  const body = await c.req.json().catch(() => null);
+  const validation = loginSchema.safeParse(body);
+
+  if (!validation.success) {
+    return c.json(
+      {
+        error: "Datos de acceso no válidos",
+      },
+      400,
+    );
+  }
+
+  const { email, password } = validation.data;
+
+  // 4. Buscar el usuario.
+  const user = await c.env.DB
+    .prepare(`
+      SELECT id, email, password_hash, is_active, created_at
+      FROM users
+      WHERE email = ?
+      LIMIT 1
+    `)
+    .bind(email)
+    .first<User>();
+
+  if (!user) {
+    return c.json(
+      {
+        error: "Email o contraseña incorrectos",
+      },
+      401,
+    );
+  }
+
+  // 5. Comprobar la contraseña.
+  const passwordValid = await verifyPassword(
+    password,
+    user.password_hash,
+  );
+
+  if (!passwordValid || user.is_active !== 1) {
+    return c.json(
+      {
+        error: "Email o contraseña incorrectos",
+      },
+      401,
+    );
+  }
+
+  // 6. Comprobar la configuración de firma.
+  if (!c.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET no está configurado");
+  }
+
+  // 7. Crear un token válido durante cinco minutos.
+  const now = Math.floor(Date.now() / 1000);
+  const duration = 5 * 60;
+
+  const token = await sign(
+    {
+      sub: String(user.id),
+      iss: "crm-backend",
+      aud: "crm-api",
+      iat: now,
+      exp: now + duration,
+    },
+    c.env.JWT_SECRET,
+    "HS256",
+  );
+
+  // 8. Guardar el JWT en una cookie del cliente.
+  const secure = c.env.COOKIE_SECURE === "true";
+
+  setCookie(c, "crm_token", token, {
+    httpOnly: true,
+    secure,
+    sameSite: "Strict",
+    path: "/",
+    maxAge: duration,
+  });
+
+  // 9. Devolver únicamente datos públicos.
+  return c.json({
+    message: "Sesión iniciada correctamente",
+    data: {
+      id: user.id,
+      email: user.email,
+    },
+    expiresIn: duration,
+  });
+});
+```
+
+### Qué controla la duración
+
+Hay dos caducidades:
+
+```ts
+exp: now + 300
+```
+
+Define cuándo dejará de ser válido el JWT al verificarlo.
+
+```ts
+maxAge: 300
+```
+
+Define cuánto tiempo conserva el navegador la cookie. `Max-Age` se expresa en segundos. [developer.mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
+
+La caducidad del JWT debe comprobarse en el backend; no basta con confiar en que el navegador elimine la cookie.
+
+### Por qué comprobamos `Origin`
+
+Con cookies, hay que considerar CSRF, incluido el login. En este diseño aceptamos únicamente el origen del frontend configurado. `SameSite` complementa esta protección, pero no la sustituye. [cheatsheetseries.owasp](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+
+## 6. Reiniciar el backend
+
+Después de cambiar `.dev.vars`:
+
+```bash
+npx wrangler types
+npx wrangler dev
+```
+
+Si ya estaba ejecutándose, detenlo con `Ctrl+C` y vuelve a iniciarlo.
+
+La ruta estará disponible porque ya tienes montado:
+
+```ts
+app.route("/api/auth", authRoutes);
+```
+
+## 7. Probar el login con curl
+
+Utiliza el email y la contraseña del usuario que registraste:
+
+```bash
+curl -i \
+  -c cookies.txt \
+  -X POST http://localhost:8787/api/auth/login \
+  -H "Origin: http://localhost:5173" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "email": "pruebas@empresa.com",
+    "password": "Una-frase-larga-para-pruebas"
+  }'
+```
+
+No necesitas `X-Registration-Key` para iniciar sesión.
+
+La opción:
+
+```bash
+-c cookies.txt
+```
+
+Hace que curl guarde las cookies recibidas. Ese archivo contiene una credencial de sesión: no lo subas a Git y elimínalo después de la prueba.
+
+### Respuesta esperada
+
+```http
+HTTP/1.1 200 OK
+Set-Cookie: crm_token=...; Max-Age=300; Path=/; HttpOnly; SameSite=Strict
+```
+
+```json
+{
+  "message": "Sesión iniciada correctamente",
+  "data": {
+    "id": 1,
+    "email": "pruebas@empresa.com"
+  },
+  "expiresIn": 300
+}
+```
+
+El JWT va en `Set-Cookie`, no en el cuerpo JSON. `HttpOnly` impide que JavaScript lo lea mediante `document.cookie`, pero el navegador puede seguir enviándolo en las peticiones. [developer.mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
+
+## 8. Qué queda por hacer
+
+Con este paso puedes emitir la sesión, pero todavía no has protegido los endpoints del CRM.
+
+El siguiente archivo será `auth.middleware.ts`, que:
+
+1. Leerá `crm_token`.
+2. Verificará firma, caducidad, emisor y audiencia.
+3. Comprobará que el usuario sigue activo.
+4. Permitirá o rechazará la petición.
+
+Después añadiremos `/api/auth/me` y `/api/auth/logout`.
+
+Antes de publicar, también debemos limitar los intentos de login. El mensaje genérico para credenciales incorrectas es importante, pero esta versión todavía tiene diferencias de tiempo entre un usuario inexistente y una contraseña incorrecta; es una mejora pendiente junto con los controles contra ataques automatizados. [cheatsheetseries.owasp](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
