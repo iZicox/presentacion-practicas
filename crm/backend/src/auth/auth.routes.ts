@@ -1,10 +1,13 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { sign } from "hono/jwt";
+import { setCookie } from "hono/cookie";
 
-import type { AppEnv } from "../types";
+import type { AppEnv, User } from "../types";
 import {
-  hashPassword,
-  passwordFitsBcrypt,
+    hashPassword,
+    passwordFitsBcrypt,
+    verifyPassword
 } from "./auth.security";
 
 const authRoutes = new Hono<AppEnv>();
@@ -24,9 +27,9 @@ const registerSchema = z.object({
         ),
 });
 
-authRoutes.post("/register", async (c) =>{
+authRoutes.post("/register", async (c) => {
     // comprobar que el registro esta habilitado
-    if(!c.env.REGISTRATION_KEY){
+    if (!c.env.REGISTRATION_KEY) {
         return c.json(
             {
                 error: "El registro de usuarios está deshabilitado"
@@ -38,7 +41,7 @@ authRoutes.post("/register", async (c) =>{
     // comprobar la clave de alta
     const registrationKey = c.req.header("X-Registration-Key");
 
-    if(registrationKey !== c.env.REGISTRATION_KEY){
+    if (registrationKey !== c.env.REGISTRATION_KEY) {
         return c.json(
             {
                 error: "no estas autorizado para registrar usuarios"
@@ -54,7 +57,7 @@ authRoutes.post("/register", async (c) =>{
         .trim()
         .toLowerCase();
 
-    if(contentType !== "application/json") {
+    if (contentType !== "application/json") {
         return c.json(
             {
                 error: "debes enviar los datos como json"
@@ -67,7 +70,7 @@ authRoutes.post("/register", async (c) =>{
     const body = await c.req.json().catch(() => null);
     const validation = registerSchema.safeParse(body);
 
-    if(!validation.success){
+    if (!validation.success) {
         return c.json(
             {
                 error: "datos de registro no valido",
@@ -81,11 +84,11 @@ authRoutes.post("/register", async (c) =>{
     }
 
 
-    const {email, password} = validation.data;
+    const { email, password } = validation.data;
 
     // generar hash
     const passwordHash = await hashPassword(password);
-    
+
     // insertar sin sobreescribir una cuenta existente
     const result = await c.env.DB
         .prepare(`
@@ -100,14 +103,14 @@ authRoutes.post("/register", async (c) =>{
         .bind(email, passwordHash)
         .run();
 
-        if(result.meta.changes === 0){
-            return c.json(
-                {
-                    error: "ya existe el usuario"
-                },
-                409,
-            )
-        }
+    if (result.meta.changes === 0) {
+        return c.json(
+            {
+                error: "ya existe el usuario"
+            },
+            409,
+        )
+    }
 
     // devolver solo datos publicos
     return c.json(
@@ -124,6 +127,143 @@ authRoutes.post("/register", async (c) =>{
 
 
 
+});
+
+// verificar el esquema para el login
+const loginSchema = z.object({
+    email: z.string()
+        .trim()
+        .toLowerCase()
+        .email()
+        .max(254),
+
+    password: z.string()
+        .min(1)
+        .refine(passwordFitsBcrypt),
+});
+
+authRoutes.post("/login", async (c) => {
+    c.header("Cache-Control", "no-store");
+
+    // 1. Comprobar el origen para evitar login CSRF.
+    const origin = c.req.header("Origin");
+
+    if (!origin || origin !== c.env.APP_ORIGIN) {
+        return c.json(
+            {
+                error: "Origen de la petición no permitido",
+            },
+            403,
+        );
+    }
+
+    // 2. Exigir un cuerpo JSON.
+    const contentType = c.req
+        .header("Content-Type")
+        ?.split(";")[0]
+        .trim()
+        .toLowerCase();
+
+    if (contentType !== "application/json") {
+        return c.json(
+            {
+                error: "Debes enviar application/json",
+            },
+            415,
+        );
+    }
+
+    // 3. Leer y validar las credenciales.
+    const body = await c.req.json().catch(() => null);
+    const validation = loginSchema.safeParse(body);
+
+    if (!validation.success) {
+        return c.json(
+            {
+                error: "Datos de acceso no válidos",
+            },
+            400,
+        );
+    }
+
+    const { email, password } = validation.data;
+
+    // 4. Buscar el usuario.
+    const user = await c.env.DB
+        .prepare(`
+      SELECT id, email, password_hash, is_active, created_at
+      FROM users
+      WHERE email = ?
+      LIMIT 1
+    `)
+        .bind(email)
+        .first<User>();
+
+    if (!user) {
+        return c.json(
+            {
+                error: "Email o contraseña incorrectos",
+            },
+            401,
+        );
+    }
+
+    // 5. Comprobar la contraseña.
+    const passwordValid = await verifyPassword(
+        password,
+        user.password_hash,
+    );
+
+    if (!passwordValid || user.is_active !== 1) {
+        return c.json(
+            {
+                error: "Email o contraseña incorrectos",
+            },
+            401,
+        );
+    }
+
+    // 6. Comprobar la configuración de firma.
+    if (!c.env.JWT_SECRET) {
+        throw new Error("JWT_SECRET no está configurado");
+    }
+
+    // 7. Crear un token válido durante cinco minutos.
+    const now = Math.floor(Date.now() / 1000);
+    const duration = 5 * 60;
+
+    const token = await sign(
+        {
+            sub: String(user.id),
+            iss: "crm-backend",
+            aud: "crm-api",
+            iat: now,
+            exp: now + duration,
+        },
+        c.env.JWT_SECRET,
+        "HS256",
+    );
+
+    // 8. Guardar el JWT en una cookie del cliente.
+    const secure = c.env.COOKIE_SECURE === "true";
+
+    setCookie(c, "crm_token", token, {
+        httpOnly: true,
+        secure,
+        sameSite: "Strict",
+        path: "/",
+        maxAge: duration,
+    });
+
+    // 9. Devolver únicamente datos públicos.
+    return c.json({
+        message: "Sesión iniciada correctamente",
+        data: {
+            id: user.id,
+            email: user.email,
+        },
+        expiresIn: duration,
+    });
 });
 
 export default authRoutes;
