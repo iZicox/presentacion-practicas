@@ -63,6 +63,7 @@ app.get("/api/db-check", async (c) => {
 
 app.route("/api/auth", authRoutes);
 
+// manejador global de errores
 app.onError((error, c) => {
   console.error("Error interno del backend:", error);
 

@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { sign } from "hono/jwt";
-import { setCookie } from "hono/cookie";
+import { setCookie, deleteCookie } from "hono/cookie";
 
+import { authMiddleware } from "./auth.middleware";
 import type { AppEnv, User } from "../types";
 import {
     hashPassword,
@@ -265,6 +266,44 @@ authRoutes.post("/login", async (c) => {
         expiresIn: duration,
     });
 });
+
+authRoutes.get("/me", authMiddleware, (c) => {
+  const user = c.get("currentUser");
+
+  return c.json({
+    data: user,
+  });
+});
+
+authRoutes.post("/logout", (c) => {
+  c.header("Cache-Control", "no-store");
+
+  // Comprobar el origen también en el cierre de sesión.
+  const origin = c.req.header("Origin");
+
+  if (!origin || origin !== c.env.APP_ORIGIN) {
+    return c.json(
+      {
+        error: "Origen de la petición no permitido",
+      },
+      403,
+    );
+  }
+
+  const secure = c.env.COOKIE_SECURE === "true";
+
+  deleteCookie(c, "crm_token", {
+    path: "/",
+    secure,
+  });
+
+  return c.json({
+    message: "Sesión cerrada correctamente",
+  });
+});
+
+
+
 
 export default authRoutes;
 

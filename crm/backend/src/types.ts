@@ -15,6 +15,16 @@ export interface User {
     created_at: string;
 }
 
+export interface AuthUser{
+    id: number;
+    email: string;
+}
+
+export interface AppVariable{
+    currentUser: AuthUser;
+}
+
 export interface AppEnv {
     Bindings: CloudflareBindings;
+    Variables: AppVariable;
 }

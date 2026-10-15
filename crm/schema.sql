@@ -246,3 +246,23 @@ CREATE INDEX IF NOT EXISTS IDX_INTERACTION_CONTACT_DATE
 
 CREATE INDEX IF NOT EXISTS IDX_PURCHASE_COMPANY_DATE
     ON PURCHASE(COMPANY_ID, DATE DESC);
+
+-- tabla para manejar los tokens anteriores
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    refresh_hash TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    revoked_at INTEGER,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
+    ON auth_sessions(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires
+    ON auth_sessions(expires_at); 
