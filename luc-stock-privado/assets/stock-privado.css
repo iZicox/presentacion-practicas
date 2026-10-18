@@ -1,0 +1,90 @@
+/*
+ * Estilos base del plugin LUC Stock Privado.
+ *
+ * Son mínimos y neutros a propósito: heredan colores y tipografía del
+ * tema. Todo el diseño visual puede hacerse desde Elementor Pro
+ * apuntando a las clases .luc-stock* (ver estructura abajo).
+ *
+ * Para desactivar estos estilos:
+ * add_filter('luc_stock_cargar_css', '__return_false');
+ *
+ * Estructura del HTML (idéntica con o sin sesión iniciada):
+ *
+ * <div class="luc-stock luc-stock--logueado|invitado luc-stock--ESTADO">
+ *     <div class="luc-stock__contenido">
+ *         <span class="luc-stock__icono">…</span>
+ *         <div class="luc-stock__texto">
+ *             <span class="luc-stock__etiqueta">…</span>
+ *             <span class="luc-stock__valor">…</span>
+ *         </div>
+ *     </div>
+ * </div>
+ *
+ * ESTADO: invitado | con-cantidad | disponible | bajo-pedido | agotado.
+ */
+
+.luc-stock {
+    display: inline-block;
+    line-height: 1.4;
+}
+
+.luc-stock__contenido {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.luc-stock__icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.luc-stock__icono svg {
+    display: block;
+    width: 1.25em;
+    height: 1.25em;
+}
+
+.luc-stock__texto {
+    display: flex;
+    flex-direction: column;
+}
+
+.luc-stock__etiqueta {
+    font-size: 0.8em;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.luc-stock__valor {
+    font-weight: 700;
+}
+
+.luc-stock__cantidad {
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Ejemplos de personalización (descomenta y adapta, o cópialos en
+ * Elementor Pro → Avanzado → CSS personalizado):
+ *
+ * .luc-stock--invitado .luc-stock__valor {
+ *     color: #6b7280;
+ * }
+ *
+ * .luc-stock--con-cantidad .luc-stock__cantidad {
+ *     color: #16a34a;
+ * }
+ *
+ * .luc-stock--agotado .luc-stock__valor {
+ *     color: #dc2626;
+ * }
+ *
+ * .luc-stock--bajo-pedido .luc-stock__valor {
+ *     color: #b45309;
+ * }
+ */
