@@ -13,7 +13,8 @@ defined('ABSPATH') || exit;
  *
  * Variables recibidas desde render_shortcode():
  * $clases, $producto_id, $estado, $icono, $etiqueta, $logueado,
- * $cantidad, $unidad_texto, $texto_estado, $texto_invitado, $url_login.
+ * $cantidad, $unidad_texto, $texto_estado, $texto_invitado,
+ * $texto_login, $texto_registro, $url_login, $url_registro.
  */
 ?>
 
@@ -46,22 +47,63 @@ defined('ABSPATH') || exit;
 
                 <?php if (! $logueado) : ?>
 
+                    <?php
+                    /*
+                     * Estado invitado: mensaje y, debajo, los enlaces de
+                     * acceso y registro. Cada enlace es un <a> independiente
+                     * para que el navegador los detecte y sean clicables.
+                     */
+                    ?>
+
                     <span class="luc-stock__mensaje">
-
-                        <?php if (null !== $url_login) : ?>
-                            <a
-                                class="luc-stock__enlace"
-                                href="<?php echo esc_url($url_login); ?>"
-                            >
-                                <?php echo esc_html($texto_invitado); ?>
-                            </a>
-                        <?php else : ?>
-                            <?php echo esc_html($texto_invitado); ?>
-                        <?php endif; ?>
-
+                        <?php echo esc_html($texto_invitado); ?>
                     </span>
 
+                    <?php if (null !== $url_login || null !== $url_registro) : ?>
+                        <span class="luc-stock__acciones">
+
+                            <?php if (null !== $url_login) : ?>
+                                <a
+                                    class="luc-stock__enlace luc-stock__enlace--login"
+                                    href="<?php echo esc_url($url_login); ?>"
+                                >
+                                    <?php echo esc_html($texto_login); ?>
+                                </a>
+                            <?php endif; ?>
+
+                            <?php
+                            /*
+                             * El punto separador solo se muestra cuando
+                             * existen los dos enlaces.
+                             */
+                            ?>
+                            <?php if (null !== $url_login && null !== $url_registro) : ?>
+                                <span
+                                    class="luc-stock__separador"
+                                    aria-hidden="true"
+                                >·</span>
+                            <?php endif; ?>
+
+                            <?php if (null !== $url_registro) : ?>
+                                <a
+                                    class="luc-stock__enlace luc-stock__enlace--registro"
+                                    href="<?php echo esc_url($url_registro); ?>"
+                                >
+                                    <?php echo esc_html($texto_registro); ?>
+                                </a>
+                            <?php endif; ?>
+
+                        </span>
+                    <?php endif; ?>
+
                 <?php elseif ('con-cantidad' === $estado) : ?>
+
+                    <?php
+                    /*
+                     * Usuario con sesión y stock numérico: mostramos la
+                     * cifra exacta y su unidad ("unidad/unidades disponibles").
+                     */
+                    ?>
 
                     <span class="luc-stock__cantidad">
                         <?php echo esc_html(number_format_i18n($cantidad)); ?>
@@ -72,6 +114,13 @@ defined('ABSPATH') || exit;
                     </span>
 
                 <?php else : ?>
+
+                    <?php
+                    /*
+                     * Usuario con sesión sin cifra numérica: mostramos el
+                     * estado textual (Disponible, bajo pedido o Agotado).
+                     */
+                    ?>
 
                     <span
                         class="luc-stock__estado luc-stock__estado--<?php echo esc_attr($estado); ?>"

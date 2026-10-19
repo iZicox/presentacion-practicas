@@ -8,14 +8,21 @@
  * Para desactivar estos estilos:
  * add_filter('luc_stock_cargar_css', '__return_false');
  *
- * Estructura del HTML (idéntica con o sin sesión iniciada):
+ * Estructura base del HTML (el estado invitado añade .luc-stock__acciones):
  *
  * <div class="luc-stock luc-stock--logueado|invitado luc-stock--ESTADO">
  *     <div class="luc-stock__contenido">
  *         <span class="luc-stock__icono">…</span>
  *         <div class="luc-stock__texto">
  *             <span class="luc-stock__etiqueta">…</span>
- *             <span class="luc-stock__valor">…</span>
+ *             <span class="luc-stock__valor">
+ *                 <span class="luc-stock__mensaje">…</span>
+ *                 <span class="luc-stock__acciones">
+ *                     <a class="luc-stock__enlace luc-stock__enlace--login">…</a>
+ *                     <span class="luc-stock__separador">·</span>
+ *                     <a class="luc-stock__enlace luc-stock__enlace--registro">…</a>
+ *                 </span>
+ *             </span>
  *         </div>
  *     </div>
  * </div>
@@ -62,6 +69,51 @@
 
 .luc-stock__valor {
     font-weight: 700;
+}
+
+/*
+ * Estado invitado: el mensaje y los enlaces se apilan en columna.
+ * Solo se aplica a .luc-stock--invitado para no alterar la línea
+ * de cantidad/estado que ven los usuarios con sesión.
+ */
+.luc-stock--invitado .luc-stock__valor {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+/*
+ * Contenedor de los enlaces "Iniciar sesión" y "Registrarse".
+ * flex-wrap permite que en móvil el segundo enlace baje de línea
+ * sin romper el diseño.
+ */
+.luc-stock__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+}
+
+/*
+ * Enlaces del estado invitado. Son <a> reales, por lo que el cursor
+ * y la navegación por teclado funcionan de forma nativa.
+ */
+.luc-stock__enlace {
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.luc-stock__enlace:hover,
+.luc-stock__enlace:focus {
+    text-decoration: none;
+}
+
+/* Punto decorativo entre los dos enlaces. */
+.luc-stock__separador {
+    opacity: 0.5;
 }
 
 .luc-stock__cantidad {
