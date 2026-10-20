@@ -1,69 +1,103 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import Avatar from '../components/common/Avatar'
+import { IconBriefcase, IconHome, IconMenu } from '../components/common/icons'
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Inicio', end: true },
-  { to: '/companies', label: 'Empresas', end: false },
+interface NavItem {
+  to: string
+  label: string
+  end: boolean
+  icon: ReactNode
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { to: '/', label: 'Inicio', end: true, icon: <IconHome size={18} /> },
+  { to: '/companies', label: 'Empresas', end: false, icon: <IconBriefcase size={18} /> },
 ]
 
-/** Estructura visual general: barra superior, menú lateral y contenido. */
+/** Estructura visual general: menú lateral, barra superior y contenido. */
 export default function AppLayout() {
   // En pantallas pequeñas el menú se muestra u oculta con estado local
   // (sin JavaScript de Bootstrap).
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-vh-100 d-flex flex-column bg-body-tertiary">
-      <nav className="navbar navbar-dark bg-primary px-3">
-        <button
-          type="button"
-          className="btn btn-outline-light me-3 d-lg-none"
-          aria-expanded={sidebarOpen}
-          aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
-          onClick={() => setSidebarOpen((open) => !open)}
-        >
-          Menú
-        </button>
-        <span className="navbar-brand mb-0 h1 fs-4">CRM Interno</span>
-        <span className="navbar-text d-none d-md-inline">
-          Gestión de empresas y seguimiento comercial
-        </span>
-      </nav>
-
-      <div className="container-fluid flex-grow-1 p-0">
-        <div className="row g-0 flex-grow-1">
-          <aside
-            className={`col-12 col-lg-2 bg-white border-end p-3 ${
-              sidebarOpen ? 'd-block' : 'd-none d-lg-block'
-            }`}
-          >
-            <ul
-              className="nav nav-pills flex-column gap-1"
-              onClick={() => setSidebarOpen(false)}
-            >
-              {NAV_ITEMS.map((item) => (
-                <li className="nav-item" key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-                  >
-                    {item.label}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </aside>
-
-          <main className="col p-4">
-            <Outlet />
-          </main>
+    <div className="crm-shell">
+      <aside className={`crm-sidebar${sidebarOpen ? ' is-open' : ''}`}>
+        <div className="crm-brand">
+          <span className="crm-brand-mark" aria-hidden="true">
+            C
+          </span>
+          <span className="crm-brand-text">
+            <span className="crm-brand-name">CRM Interno</span>
+            <span className="crm-brand-sub">Gestión comercial</span>
+          </span>
         </div>
-      </div>
 
-      <footer className="border-top bg-white text-secondary small p-3 text-center">
-        CRM interno · entorno de desarrollo
-      </footer>
+        <nav className="crm-nav" aria-label="Principal">
+          <span className="crm-nav-label">Menú</span>
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) => (isActive ? 'crm-nav-link active' : 'crm-nav-link')}
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="crm-sidebar-foot">
+          <span className="b-soft b-slate">v0.1 · prototipo</span>
+        </div>
+      </aside>
+
+      {sidebarOpen ? (
+        <div
+          className="crm-backdrop"
+          aria-hidden="true"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
+      <div className="crm-main">
+        <header className="crm-topbar">
+          <button
+            type="button"
+            className="btn-icon d-lg-none"
+            aria-label="Abrir menú"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <IconMenu size={20} />
+          </button>
+
+          <span className="demo-pill">
+            <span className="dot" aria-hidden="true" />
+            Datos ficticios · modo demo
+          </span>
+
+          <div className="ms-auto d-flex align-items-center gap-2">
+            <Avatar name="Francisco García" size="sm" />
+            <span className="d-none d-sm-block lh-sm">
+              <span className="crm-user-name">Francisco G.</span>
+              <span className="crm-user-role">Equipo comercial</span>
+            </span>
+          </div>
+        </header>
+
+        <main className="crm-content">
+          <Outlet />
+        </main>
+
+        <footer className="crm-footer">
+          CRM interno · prototipo de diseño con datos ficticios · los cambios se reinician al
+          recargar la página
+        </footer>
+      </div>
     </div>
   )
 }

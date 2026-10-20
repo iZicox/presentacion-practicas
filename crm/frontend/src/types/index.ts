@@ -77,6 +77,55 @@ export interface Purchase {
   CREATED_AT: string
 }
 
+/** Datos de entrada para crear o editar una empresa. */
+export interface CompanyInput {
+  NAME: string
+  SEGMENT_ID: number | null
+  STATUS_ID: number | null
+  CLIENT_TYPE_ID: number | null
+  EMAIL: string | null
+  PHONE_NUMBER: string | null
+  WEB: string | null
+  NOTES: string | null
+}
+
+/** Datos de entrada para crear o editar un contacto. */
+export interface ContactInput {
+  FIRST_NAME: string
+  LAST_NAME: string
+  JOB_TITLE: string | null
+  EMAIL: string | null
+  PHONE_NUMBER: string | null
+  NOTES: string | null
+}
+
+/** Datos de entrada para crear o editar una interacción. */
+export interface InteractionInput {
+  CONTACT_ID: number | null
+  DATE: string
+  DESCRIPTION: string
+  NOTES: string | null
+}
+
+/** Datos de entrada para crear o editar una compra. */
+export interface PurchaseInput {
+  DATE: string
+  AMOUNT_CENTS: number
+}
+
+/**
+ * Indicadores de compras de una empresa.
+ * Corresponde a GET /api/companies/:id/purchase-summary.
+ * Criterio: los importes agregan todo el historial; `LAST_PURCHASE_DATE`
+ * también corresponde a todo el historial, no a un periodo filtrado.
+ */
+export interface PurchaseSummary {
+  TOTAL_CENTS: number
+  PURCHASE_COUNT: number
+  AVERAGE_CENTS: number | null
+  LAST_PURCHASE_DATE: string | null
+}
+
 /** Envolvente de éxito de la API: { "data": ... } */
 export interface ApiEnvelope<T> {
   data: T
