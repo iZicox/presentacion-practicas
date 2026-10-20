@@ -1,2 +1,6 @@
 ./node_modules
 node_modules
+
+# Archivos de cookies de pruebas locales (contienen credenciales de sesión)
+cookies.txt
+*.cookies.txt

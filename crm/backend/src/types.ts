@@ -4,6 +4,7 @@ export interface CloudflareBindings {
     REGISTRATION_KEY: string;
     APP_ORIGIN: string;
     JWT_SECRET: string;
+    JWT_REFRESH_SECRET: string;
     COOKIE_SECURE: string;
 }
 
@@ -20,11 +21,12 @@ export interface AuthUser{
     email: string;
 }
 
-export interface AppVariable{
+export interface AppVariables{
     currentUser: AuthUser;
+    sessionId: string;
 }
 
 export interface AppEnv {
     Bindings: CloudflareBindings;
-    Variables: AppVariable;
+    Variables: AppVariables;
 }

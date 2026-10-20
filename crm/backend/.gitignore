@@ -168,3 +168,7 @@ dist
 .wrangler/
 ./wrangler.jsonc
 wrangler.*
+
+# Archivos de cookies de pruebas locales (contienen credenciales de sesión)
+cookies.txt
+*.cookies.txt

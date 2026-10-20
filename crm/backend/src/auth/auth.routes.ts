@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { sign } from "hono/jwt";
-import { setCookie, deleteCookie } from "hono/cookie";
+import { getCookie } from "hono/cookie";
 
 import { authMiddleware } from "./auth.middleware";
 import type { AppEnv, User } from "../types";
@@ -11,7 +10,39 @@ import {
     verifyPassword
 } from "./auth.security";
 
+import {
+  ACCESS_TTL,
+  REFRESH_TTL,
+  nowSeconds,
+  hashToken,
+  createTokenPair,
+  verifyRefreshToken,
+  setAuthCookies,
+  clearAuthCookies,
+} from "./auth.tokens";
+
+import type { TokenIdentity } from "./auth.tokens";
+
 const authRoutes = new Hono<AppEnv>();
+
+// Revoca la sesión indicada en D1, solo si sigue sin revocar.
+// La identidad debe venir de un token verificado.
+async function revokeSession(
+    db: D1Database,
+    sessionId: string,
+    userId: number,
+): Promise<void> {
+    await db
+        .prepare(`
+            UPDATE auth_sessions
+            SET revoked_at = ?
+            WHERE id = ?
+              AND user_id = ?
+              AND revoked_at IS NULL
+        `)
+        .bind(nowSeconds(), sessionId, userId)
+        .run();
+}
 
 const registerSchema = z.object({
     email: z.string()
@@ -225,45 +256,216 @@ authRoutes.post("/login", async (c) => {
     }
 
     // 6. Comprobar la configuración de firma.
-    if (!c.env.JWT_SECRET) {
-        throw new Error("JWT_SECRET no está configurado");
+    if (!c.env.JWT_SECRET || !c.env.JWT_REFRESH_SECRET) {
+        throw new Error("Faltan los secretos JWT");
     }
 
-    // 7. Crear un token válido durante cinco minutos.
-    const now = Math.floor(Date.now() / 1000);
-    const duration = 5 * 60;
+    // 7. Crear la sesión y el par de tokens.
+    const sessionId = crypto.randomUUID();
+    const createdAt = nowSeconds();
 
-    const token = await sign(
-        {
-            sub: String(user.id),
-            iss: "crm-backend",
-            aud: "crm-api",
-            iat: now,
-            exp: now + duration,
-        },
-        c.env.JWT_SECRET,
-        "HS256",
-    );
+    const { accessToken, refreshToken, refreshExpiresAt } =
+        await createTokenPair(c, user.id, sessionId);
 
-    // 8. Guardar el JWT en una cookie del cliente.
-    const secure = c.env.COOKIE_SECURE === "true";
+    // 8. Guardar únicamente el hash del refresh en D1.
+    const refreshHash = await hashToken(refreshToken);
 
-    setCookie(c, "crm_token", token, {
-        httpOnly: true,
-        secure,
-        sameSite: "Strict",
-        path: "/",
-        maxAge: duration,
-    });
+    await c.env.DB
+        .prepare(`
+            INSERT INTO auth_sessions (
+                id,
+                user_id,
+                refresh_hash,
+                created_at,
+                expires_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+        `)
+        .bind(
+            sessionId,
+            user.id,
+            refreshHash,
+            createdAt,
+            refreshExpiresAt,
+        )
+        .run();
 
-    // 9. Devolver únicamente datos públicos.
+    // 9. Entregar los tokens en cookies y devolver solo datos públicos.
+    setAuthCookies(c, accessToken, refreshToken);
+
     return c.json({
         message: "Sesión iniciada correctamente",
         data: {
             id: user.id,
             email: user.email,
         },
-        expiresIn: duration,
+        expiresIn: ACCESS_TTL,
+        refreshExpiresIn: REFRESH_TTL,
+    });
+});
+
+authRoutes.post("/refresh", async (c) => {
+    c.header("Cache-Control", "no-store");
+
+    // 1. Comprobar el origen para evitar CSRF.
+    const origin = c.req.header("Origin");
+
+    if (!origin || origin !== c.env.APP_ORIGIN) {
+        return c.json(
+            {
+                error: "Origen de la petición no permitido",
+            },
+            403,
+        );
+    }
+
+    // 2. Comprobar la configuración de firma.
+    if (!c.env.JWT_REFRESH_SECRET) {
+        throw new Error("JWT_REFRESH_SECRET no está configurado");
+    }
+
+    // 3. Leer la cookie del refresh.
+    const refreshToken = getCookie(c, "crm_refresh");
+
+    if (!refreshToken) {
+        clearAuthCookies(c);
+
+        return c.json(
+            {
+                error: "La sesión ha caducado o no es válida",
+            },
+            401,
+        );
+    }
+
+    // 4. Verificar la firma y las claims del refresh.
+    let identity: TokenIdentity;
+
+    try {
+        identity = await verifyRefreshToken(
+            refreshToken,
+            c.env.JWT_REFRESH_SECRET,
+        );
+    } catch {
+        clearAuthCookies(c);
+
+        return c.json(
+            {
+                error: "La sesión ha caducado o no es válida",
+            },
+            401,
+        );
+    }
+
+    // 5. Comprobar la sesión y el usuario en D1.
+    // Queda fuera del catch del JWT: un fallo de D1 debe acabar en 500.
+    const now = nowSeconds();
+
+    const session = await c.env.DB
+        .prepare(`
+            SELECT s.refresh_hash
+            FROM auth_sessions s
+            INNER JOIN users u ON u.id = s.user_id
+            WHERE s.id = ?
+              AND s.user_id = ?
+              AND s.revoked_at IS NULL
+              AND s.expires_at > ?
+              AND u.is_active = 1
+            LIMIT 1
+        `)
+        .bind(identity.sessionId, identity.userId, now)
+        .first<{ refresh_hash: string }>();
+
+    if (!session) {
+        clearAuthCookies(c);
+
+        return c.json(
+            {
+                error: "La sesión ha caducado o no es válida",
+            },
+            401,
+        );
+    }
+
+    // 6. Comprobar que el refresh recibido es el vigente.
+    // Si no coincide, se revoca la sesión (detección de reutilización).
+    const receivedHash = await hashToken(refreshToken);
+
+    if (receivedHash !== session.refresh_hash) {
+        await revokeSession(c.env.DB, identity.sessionId, identity.userId);
+
+        clearAuthCookies(c);
+
+        return c.json(
+            {
+                error: "La sesión ha caducado o no es válida",
+            },
+            401,
+        );
+    }
+
+    // 7. Renovar el par de tokens.
+    const {
+        accessToken,
+        refreshToken: newRefreshToken,
+        refreshExpiresAt,
+    } = await createTokenPair(c, identity.userId, identity.sessionId);
+
+    const newRefreshHash = await hashToken(newRefreshToken);
+
+    // 8. Reemplazar el hash de forma atómica: solo se renueva si el
+    // refresh recibido sigue siendo el vigente y la sesión y el usuario
+    // continúan activos.
+    const updated = await c.env.DB
+        .prepare(`
+            UPDATE auth_sessions
+            SET refresh_hash = ?,
+                expires_at = ?
+            WHERE id = ?
+              AND user_id = ?
+              AND refresh_hash = ?
+              AND revoked_at IS NULL
+              AND expires_at > ?
+              AND EXISTS (
+                  SELECT 1
+                  FROM users
+                  WHERE users.id = auth_sessions.user_id
+                    AND users.is_active = 1
+              )
+            RETURNING id
+        `)
+        .bind(
+            newRefreshHash,
+            refreshExpiresAt,
+            identity.sessionId,
+            identity.userId,
+            receivedHash,
+            now,
+        )
+        .first<{ id: string }>();
+
+    if (!updated) {
+        // La sesión cambió entre la comprobación y la actualización:
+        // se revoca para no dejar un refresh reutilizable.
+        await revokeSession(c.env.DB, identity.sessionId, identity.userId);
+
+        clearAuthCookies(c);
+
+        return c.json(
+            {
+                error: "La sesión ha caducado o no es válida",
+            },
+            401,
+        );
+    }
+
+    // 9. Entregar los tokens nuevos en cookies.
+    setAuthCookies(c, accessToken, newRefreshToken);
+
+    return c.json({
+        message: "Tokens renovados correctamente",
+        expiresIn: ACCESS_TTL,
+        refreshExpiresIn: REFRESH_TTL,
     });
 });
 
@@ -275,7 +477,7 @@ authRoutes.get("/me", authMiddleware, (c) => {
   });
 });
 
-authRoutes.post("/logout", (c) => {
+authRoutes.post("/logout", async (c) => {
   c.header("Cache-Control", "no-store");
 
   // Comprobar el origen también en el cierre de sesión.
@@ -290,12 +492,33 @@ authRoutes.post("/logout", (c) => {
     );
   }
 
-  const secure = c.env.COOKIE_SECURE === "true";
+  // Un fallo de configuración no es un error del usuario.
+  if (!c.env.JWT_REFRESH_SECRET) {
+    throw new Error("JWT_REFRESH_SECRET no está configurado");
+  }
 
-  deleteCookie(c, "crm_token", {
-    path: "/",
-    secure,
-  });
+  const refreshToken = getCookie(c, "crm_refresh");
+
+  if (refreshToken) {
+    let identity: TokenIdentity | null = null;
+
+    try {
+      // No se identifica ninguna sesión sin validar antes la firma.
+      identity = await verifyRefreshToken(
+        refreshToken,
+        c.env.JWT_REFRESH_SECRET,
+      );
+    } catch {
+      identity = null;
+    }
+
+    if (identity) {
+      // Fuera del catch del JWT: un fallo de D1 debe acabar en 500.
+      await revokeSession(c.env.DB, identity.sessionId, identity.userId);
+    }
+  }
+
+  clearAuthCookies(c);
 
   return c.json({
     message: "Sesión cerrada correctamente",

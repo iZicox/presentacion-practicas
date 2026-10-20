@@ -1,0 +1,15 @@
+# Copia este archivo a .dev.vars y rellena valores propios.
+# Nunca subas .dev.vars al repositorio.
+
+# Clave exigida por POST /api/auth/register (cabecera X-Registration-Key).
+REGISTRATION_KEY="VALOR_A_CONFIGURAR"
+
+# Origen permitido para las peticiones con cookies.
+APP_ORIGIN="http://localhost:5173"
+
+# Secretos distintos entre sí. Genera cada uno con: openssl rand -hex 32
+JWT_SECRET="VALOR_A_CONFIGURAR"
+JWT_REFRESH_SECRET="SECRETO_DISTINTO"
+
+# "false" en local; en producción con HTTPS debe ser "true".
+COOKIE_SECURE="false"

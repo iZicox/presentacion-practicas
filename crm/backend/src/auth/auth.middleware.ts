@@ -1,13 +1,13 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie, deleteCookie } from "hono/cookie";
-import { verify } from "hono/jwt";
 
+import { verifyAccessToken, nowSeconds } from "./auth.tokens";
+import type { TokenIdentity } from "./auth.tokens";
 import type { AppEnv } from "../types";
 
 interface AuthUserRow {
   id: number;
   email: string;
-  is_active: number; 
 }
 
 export const authMiddleware = createMiddleware<AppEnv>(
@@ -16,14 +16,16 @@ export const authMiddleware = createMiddleware<AppEnv>(
 
     const secure = c.env.COOKIE_SECURE === "true";
 
-    const clearCookie = () => {
+    // Solo se elimina la cookie del access token.
+    // La cookie del refresh se conserva para poder renovar la sesión.
+    const clearAccessCookie = () => {
       deleteCookie(c, "crm_token", {
         path: "/",
         secure,
       });
     };
 
-    // 1. Leer el token de la cookie.
+    // 1. Leer el access token de la cookie.
     const token = getCookie(c, "crm_token");
 
     if (!token) {
@@ -40,43 +42,13 @@ export const authMiddleware = createMiddleware<AppEnv>(
       throw new Error("JWT_SECRET no está configurado");
     }
 
-    let userId: number;
+    let identity: TokenIdentity;
 
     try {
-      // 2. Verificar la firma con el algoritmo esperado.
-      const payload = await verify(
-        token,
-        c.env.JWT_SECRET,
-        "HS256",
-      );
-
-      const now = Math.floor(Date.now() / 1000);
-
-      // 3. Exigir las claims utilizadas por nuestro login.
-      if (
-        typeof payload.sub !== "string" ||
-        !/^[1-9]\d*$/.test(payload.sub) ||
-        payload.iss !== "crm-backend" ||
-        payload.aud !== "crm-api" ||
-        typeof payload.iat !== "number" ||
-        typeof payload.exp !== "number" ||
-        !Number.isInteger(payload.iat) ||
-        !Number.isInteger(payload.exp) ||
-        payload.iat > now ||
-        payload.exp <= now ||
-        payload.exp <= payload.iat ||
-        payload.exp - payload.iat > 300
-      ) {
-        throw new Error("Claims del token no válidas");
-      }
-
-      userId = Number(payload.sub);
-
-      if (!Number.isSafeInteger(userId)) {
-        throw new Error("Identificador no válido");
-      }
+      // 2. Verificar firma, emisor, audiencia y caducidad.
+      identity = await verifyAccessToken(token, c.env.JWT_SECRET);
     } catch {
-      clearCookie();
+      clearAccessCookie();
 
       return c.json(
         {
@@ -86,38 +58,44 @@ export const authMiddleware = createMiddleware<AppEnv>(
       );
     }
 
-    // 4. Comprobar que el usuario existe y sigue activo.
+    // 3. Comprobar que el usuario y su sesión siguen activos.
     // Esta consulta queda fuera del catch del JWT:
-    // un fallo de D1 no debe confundirse con un token inválido.
+    // un fallo de D1 debe acabar en el manejador global, no convertirse en 401.
     const user = await c.env.DB
       .prepare(`
-        SELECT id, email, is_active
-        FROM users
-        WHERE id = ?
+        SELECT u.id, u.email
+        FROM users u
+        INNER JOIN auth_sessions s ON s.user_id = u.id
+        WHERE u.id = ?
+          AND u.is_active = 1
+          AND s.id = ?
+          AND s.revoked_at IS NULL
+          AND s.expires_at > ?
         LIMIT 1
       `)
-      .bind(userId)
+      .bind(identity.userId, identity.sessionId, nowSeconds())
       .first<AuthUserRow>();
 
-
-    if (!user || user.is_active !== 1) {
-      clearCookie();
+    if (!user) {
+      clearAccessCookie();
 
       return c.json(
         {
-          error: "La cuenta no está disponible",
+          error: "La sesión ha caducado o no es válida",
         },
         401,
       );
     }
 
-    // 5. Dejar el usuario disponible para la ruta.
+    // 4. Dejar la identidad disponible para la ruta.
     c.set("currentUser", {
       id: user.id,
       email: user.email,
     });
 
-    // 6. Continuar con la ruta protegida.
+    c.set("sessionId", identity.sessionId);
+
+    // 5. Continuar con la ruta protegida.
     await next();
   },
 );
